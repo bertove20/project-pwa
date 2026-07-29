@@ -17,7 +17,12 @@ function db()
     $opt = [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-        PDO::ATTR_EMULATE_PREPARES => false,
+        // Prepare sisi server berarti dua perjalanan ke MySQL untuk setiap
+        // kueri sekali pakai. Hampir semua kueri di sini sekali pakai, jadi
+        // emulasi memangkas separuh perjalanan tanpa mengurangi keamanan:
+        // parameter tetap di-quote PDO, bukan disambung manual.
+        PDO::ATTR_EMULATE_PREPARES => true,
+        PDO::ATTR_PERSISTENT => DB_PERSISTENT,
     ];
     $dsnBase = 'mysql:host=' . DB_HOST . ';port=' . DB_PORT . ';charset=utf8mb4';
 
@@ -38,8 +43,61 @@ function db()
         }
     }
 
-    db_install($pdo);
+    db_reset_state($pdo);
+    db_ensure_schema($pdo);
     return $pdo;
+}
+
+/**
+ * Koneksi persisten dipakai ulang apa adanya, termasuk sisa keadaan dari
+ * permintaan sebelumnya yang mungkin berhenti di tengah jalan. Dua hal yang
+ * bisa menular dan harus dibereskan di awal:
+ *
+ *   - mode tak-terbuffer yang belum sempat dikembalikan oleh db_stream_end()
+ *   - transaksi yang belum di-commit maupun di-rollback
+ */
+function db_reset_state(PDO $pdo)
+{
+    if (!DB_PERSISTENT) {
+        return;
+    }
+    $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+    if ($pdo->inTransaction()) {
+        try {
+            $pdo->rollBack();
+        } catch (PDOException $e) {
+            // Tidak ada transaksi yang benar-benar terbuka; abaikan
+        }
+    }
+}
+
+/**
+ * Versi skema. Naikkan bila struktur tabel berubah, agar pemeriksaan
+ * dijalankan ulang sekali di setiap instalasi.
+ */
+define('SCHEMA_VERSION', 2);
+
+/**
+ * Pemeriksaan skema hanya sekali seumur instalasi, ditandai berkas penanda.
+ *
+ * Sebelumnya SHOW TABLES dan SHOW INDEX dijalankan pada SETIAP permintaan,
+ * termasuk pada redirect /go yang paling sering diakses. Memeriksa keberadaan
+ * satu berkas jauh lebih murah daripada dua perjalanan bolak-balik ke MySQL.
+ */
+function db_ensure_schema(PDO $pdo)
+{
+    $penanda = DATA_DIR . '/.skema-v' . SCHEMA_VERSION;
+    if (is_file($penanda)) {
+        return;
+    }
+
+    db_install($pdo);
+
+    if (!is_dir(DATA_DIR)) {
+        @mkdir(DATA_DIR, 0775, true);
+    }
+    @file_put_contents($penanda, "Skema versi " . SCHEMA_VERSION . " dipasang " . date('c') . "\n"
+        . "Hapus berkas ini bila struktur database perlu diperiksa ulang.\n");
 }
 
 function db_fail(PDOException $e)
@@ -303,34 +361,74 @@ function db_dt($iso)
 
 /* ------------------------------------------------------------- Pembantu */
 
+/**
+ * Jalankan kueri; bila tabel ternyata hilang (mis. database dibuat ulang
+ * sementara berkas penanda skema masih ada), skema dipasang ulang sekali
+ * lalu kueri diulang.
+ */
+function db_query($sql, array $params = [])
+{
+    try {
+        $st = db()->prepare($sql);
+        $st->execute($params);
+        return $st;
+    } catch (PDOException $e) {
+        static $sudahDiperbaiki = false;
+        if ($sudahDiperbaiki || (int) $e->errorInfo[1] !== 1146) {
+            throw $e;
+        }
+        $sudahDiperbaiki = true;
+        @unlink(DATA_DIR . '/.skema-v' . SCHEMA_VERSION);
+        db_install(db());
+        $st = db()->prepare($sql);
+        $st->execute($params);
+        return $st;
+    }
+}
+
 function db_all($sql, array $params = [])
 {
-    $st = db()->prepare($sql);
-    $st->execute($params);
-    return $st->fetchAll();
+    return db_query($sql, $params)->fetchAll();
 }
 
 function db_row($sql, array $params = [])
 {
-    $st = db()->prepare($sql);
-    $st->execute($params);
-    $row = $st->fetch();
+    $row = db_query($sql, $params)->fetch();
     return $row === false ? null : $row;
 }
 
 function db_val($sql, array $params = [], $default = null)
 {
-    $st = db()->prepare($sql);
-    $st->execute($params);
-    $v = $st->fetchColumn();
+    $v = db_query($sql, $params)->fetchColumn();
     return $v === false ? $default : $v;
 }
 
 function db_run($sql, array $params = [])
 {
+    return db_query($sql, $params)->rowCount();
+}
+
+/**
+ * Kueri yang hasilnya dibaca baris demi baris tanpa ditampung seluruhnya.
+ *
+ * PDO membuffer hasil secara bawaan: satu laporan analitik pada rentang lebar
+ * akan menarik ratusan ribu baris ke memori PHP sekaligus. Mode tak-terbuffer
+ * membuat pemakaian memori tetap datar berapa pun besar rentangnya.
+ *
+ * Selama hasilnya belum habis dibaca, koneksi tidak boleh dipakai kueri lain.
+ */
+function db_stream($sql, array $params = [])
+{
+    db()->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
     $st = db()->prepare($sql);
     $st->execute($params);
-    return $st->rowCount();
+    return $st;
+}
+
+function db_stream_end(PDOStatement $st)
+{
+    $st->closeCursor();
+    db()->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
 }
 
 /** Pasangan kolom => jumlah, dari kueri dua kolom. */

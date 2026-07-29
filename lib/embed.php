@@ -182,8 +182,8 @@ function pwa_fetch_remote($url)
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 5,
-            CURLOPT_CONNECTTIMEOUT => 3,
+            CURLOPT_TIMEOUT => 3,
+            CURLOPT_CONNECTTIMEOUT => 2,
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 3,
             CURLOPT_USERAGENT => 'PWA-Landing/1.0',
@@ -195,7 +195,7 @@ function pwa_fetch_remote($url)
     }
 
     if (ini_get('allow_url_fopen')) {
-        $ctx = stream_context_create(['http' => ['timeout' => 5, 'ignore_errors' => true]]);
+        $ctx = stream_context_create(['http' => ['timeout' => 3, 'ignore_errors' => true]]);
         $body = @file_get_contents($url, false, $ctx);
         return $body === false ? null : $body;
     }
@@ -203,7 +203,60 @@ function pwa_fetch_remote($url)
     return null;
 }
 
-/** Data PWA terkini. Dibaca sekali per request. */
+function pwa_cache_read()
+{
+    if (!is_file(SYNC_CACHE_FILE)) {
+        return null;
+    }
+    $c = json_decode((string) @file_get_contents(SYNC_CACHE_FILE), true);
+    return (is_array($c) && !empty($c['name'])) ? $c : null;
+}
+
+function pwa_cache_write($raw)
+{
+    $fresh = json_decode((string) $raw, true);
+    if (is_array($fresh) && !empty($fresh['name'])) {
+        @file_put_contents(SYNC_CACHE_FILE, $raw, LOCK_EX);
+        return true;
+    }
+    return false;
+}
+
+/**
+ * Kirim halaman ke pengunjung, tutup koneksinya, baru segarkan cache.
+ *
+ * Wajib dipanggil di akhir halaman, dan halaman wajib dibuka dengan ob_start()
+ * supaya Content-Length masih bisa dipasang. Tanpa panjang isi yang pasti,
+ * peramban menunggu koneksi tertutup - artinya tetap menunggu panel menjawab.
+ */
+function pwa_selesaikan_respons()
+{
+    ignore_user_abort(true);
+
+    if (!headers_sent()) {
+        $n = ob_get_length();
+        header('Content-Length: ' . ($n === false ? 0 : $n));
+        header('Connection: close');
+    }
+    while (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    flush();
+
+    if (!empty($GLOBALS['__pwa_perlu_segarkan'])) {
+        $GLOBALS['__pwa_perlu_segarkan'] = false;
+        pwa_cache_write(pwa_fetch_remote(PANEL_CONFIG_URL));
+    }
+}
+
+/**
+ * Data PWA terkini. Dibaca sekali per request.
+ *
+ * Cache basi tetap dipakai lebih dulu dan penyegaran dilakukan setelah respons
+ * terkirim. Tanpa itu, setiap kali TTL habis ada satu pengunjung yang menunggu
+ * panel menjawab - dan bila panel sedang mati, setiap pengunjung menunggu
+ * sampai timeout.
+ */
 function pwa_data()
 {
     static $data = null;
@@ -212,23 +265,25 @@ function pwa_data()
     }
 
     global $FALLBACK;
-    $cacheValid = is_file(SYNC_CACHE_FILE) && (time() - filemtime(SYNC_CACHE_FILE) < SYNC_TTL);
+    $ada = is_file(SYNC_CACHE_FILE);
+    $masihSegar = $ada && (time() - filemtime(SYNC_CACHE_FILE) < SYNC_TTL);
 
-    if (!$cacheValid) {
-        $raw = pwa_fetch_remote(PANEL_CONFIG_URL);
-        $fresh = json_decode((string) $raw, true);
-        if (is_array($fresh) && !empty($fresh['name'])) {
-            @file_put_contents(SYNC_CACHE_FILE, $raw, LOCK_EX);
-            return $data = $fresh;
-        }
-        // Panel tidak menjawab - jatuh ke cache lama di bawah.
+    if ($ada && $masihSegar) {
+        return $data = pwa_cache_read() ?: $FALLBACK;
     }
 
-    if (is_file(SYNC_CACHE_FILE)) {
-        $cached = json_decode((string) @file_get_contents(SYNC_CACHE_FILE), true);
-        if (is_array($cached) && !empty($cached['name'])) {
-            return $data = $cached;
-        }
+    if ($ada) {
+        // Tandai lebih dulu agar permintaan lain yang datang bersamaan tidak
+        // ikut-ikutan menghubungi panel, dan agar panel yang mati tidak
+        // dicoba ulang pada setiap kunjungan.
+        @touch(SYNC_CACHE_FILE);
+        $GLOBALS['__pwa_perlu_segarkan'] = true;
+        return $data = pwa_cache_read() ?: $FALLBACK;
+    }
+
+    // Belum pernah ada cache: hanya kali ini pengunjung menunggu.
+    if (pwa_cache_write($raw = pwa_fetch_remote(PANEL_CONFIG_URL))) {
+        return $data = json_decode($raw, true);
     }
 
     return $data = $FALLBACK;
@@ -262,6 +317,7 @@ function embed_manifest_php()
 
 require_once __DIR__ . '/sync.php';
 
+ob_start();
 header('Content-Type: application/manifest+json; charset=utf-8');
 header('Cache-Control: no-cache, must-revalidate');
 
@@ -280,6 +336,8 @@ echo json_encode([
     'dir' => 'ltr',
     'icons' => pv('icons', []),
 ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+pwa_selesaikan_respons();
 
 PHP;
 }
@@ -319,6 +377,10 @@ function embed_index_php(array $pwa)
  */
 
 require_once __DIR__ . '/sync.php';
+
+// Buffer sejak awal supaya Content-Length bisa dipasang dan koneksi ditutup
+// sebelum cache disegarkan di latar.
+ob_start();
 
 $theme = pe('theme_color', '#0f172a');
 $bg = pe('background_color', '#ffffff');
@@ -513,6 +575,7 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
 <?php endif; ?>
 </body>
 </html>
+<?php pwa_selesaikan_respons(); ?>
 
 PHP;
 

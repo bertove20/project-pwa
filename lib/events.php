@@ -21,9 +21,14 @@ function event_visitor_hash()
         return $hash;
     }
 
-    $s = settings_all();
-    if (empty($s['visitor_salt'])) {
-        $s = settings_save(['visitor_salt' => bin2hex(random_bytes(16))]);
+    // Ambil satu baris saja. settings_all() menarik seluruh tabel pengaturan
+    // padahal jalur publik hanya butuh salt ini.
+    $salt = db_val('SELECT v FROM settings WHERE k = ?', ['visitor_salt'], '');
+    if ($salt === '' || $salt === null) {
+        $salt = bin2hex(random_bytes(16));
+        db_run('INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)',
+            ['visitor_salt', $salt]);
+        mem_clear('settings');
     }
 
     $ip = $_SERVER['HTTP_CF_CONNECTING_IP']
@@ -35,7 +40,7 @@ function event_visitor_hash()
     }
     $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
 
-    return $hash = substr(hash('sha256', $s['visitor_salt'] . '|' . today() . '|' . trim($ip) . '|' . $ua), 0, 12);
+    return $hash = substr(hash('sha256', $salt . '|' . today() . '|' . trim($ip) . '|' . $ua), 0, 12);
 }
 
 function event_log($slug, $event, $src = '')
@@ -138,10 +143,10 @@ function event_report($slug, $from, $to, array $filters = [])
     $sembunyikanBot = !empty($filters['hide_bots']);
     $hariCache = [];
 
-    $st = db()->prepare(
-        "SELECT occurred_at, event, source, device, os, browser, webview, referrer FROM events$w"
+    $st = db_stream(
+        "SELECT occurred_at, event, source, device, os, browser, webview, referrer FROM events$w",
+        $p
     );
-    $st->execute($p);
 
     while ($r = $st->fetch(PDO::FETCH_NUM)) {
         // 0=occurred_at 1=event 2=source 3=device 4=os 5=browser 6=webview 7=referrer
@@ -186,7 +191,7 @@ function event_report($slug, $from, $to, array $filters = [])
             $rep['webview']++;
         }
     }
-    $st->closeCursor();
+    db_stream_end($st);
 
     foreach (['device', 'os', 'browser', 'source', 'referrer'] as $k) {
         arsort($rep[$k]);

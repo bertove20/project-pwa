@@ -69,13 +69,21 @@ function pwa_landing(array $pwa)
         exit;
     }
 
-    stat_hit($pwa['slug'], 'view', 'panel');
+    lib('icons');
     header('Cache-Control: no-cache, must-revalidate');
+
+    // Halaman dikirim utuh lebih dulu, pencatatan menyusul
+    ob_start();
     view('landing', ['pwa' => $pwa]);
+    response_finish();
+
+    stat_hit($pwa['slug'], 'view', 'panel');
+    exit;
 }
 
 function pwa_manifest(array $pwa)
 {
+    lib('icons');
     $slug = $pwa['slug'];
     $scope = url('p/' . $slug . '/');
 
@@ -109,6 +117,7 @@ function pwa_manifest(array $pwa)
  */
 function pwa_config(array $pwa)
 {
+    lib('icons');
     $config = [
         'slug' => $pwa['slug'],
         'name' => $pwa['name'],
@@ -193,11 +202,16 @@ function pwa_go(array $pwa)
 
     // s=pwa dikirim oleh start_url manifest, artinya dibuka dari ikon home screen
     $fromIcon = query('s') === 'pwa';
-    stat_hit($pwa['slug'], $fromIcon ? 'open' : 'click', $fromIcon ? 'pwa' : 'web');
 
+    // Redirect dikirim lebih dulu; pencatatan statistik menyusul setelah
+    // pengunjung sudah berjalan ke target.
     header('Cache-Control: no-store, no-cache, must-revalidate');
     header('Referrer-Policy: no-referrer-when-downgrade');
-    redirect($pwa['target_url'], 302);
+    header('Location: ' . $pwa['target_url'], true, 302);
+    response_finish();
+
+    stat_hit($pwa['slug'], $fromIcon ? 'open' : 'click', $fromIcon ? 'pwa' : 'web');
+    exit;
 }
 
 function pwa_offline(array $pwa)
@@ -232,13 +246,17 @@ function pwa_track(array $pwa)
 function pwa_track_pixel(array $pwa)
 {
     $event = query('event');
-    if ($event === 'install' || $event === 'view') {
-        stat_hit($pwa['slug'], $event, 'ext');
-    }
 
     header('Content-Type: image/gif');
     header('Cache-Control: no-store, no-cache, must-revalidate');
     header('Access-Control-Allow-Origin: *');
     echo base64_decode('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7');
+
+    // Pixel dikirim lebih dulu, pencatatan menyusul
+    response_finish();
+
+    if ($event === 'install' || $event === 'view') {
+        stat_hit($pwa['slug'], $event, 'ext');
+    }
     exit;
 }

@@ -6,24 +6,19 @@
  *   /                 -> panel admin
  *   /admin/...        -> panel admin
  *   /p/{slug}/...     -> endpoint publik PWA
+ *
+ * Berkas dimuat sesuai kebutuhan rute, bukan sekaligus. Panel admin memerlukan
+ * app/admin.php dan lib/embed.php yang bersama-sama hampir separuh dari seluruh
+ * kode; jalur publik seperti redirect /go tidak pernah menyentuh keduanya dan
+ * tidak perlu ikut menanggung waktu parsing-nya.
  */
 
 require __DIR__ . '/config.php';
 require __DIR__ . '/lib/helpers.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/store.php';
-require __DIR__ . '/lib/auth.php';
-require __DIR__ . '/lib/icons.php';
-require __DIR__ . '/lib/stats.php';
-require __DIR__ . '/lib/useragent.php';
-require __DIR__ . '/lib/events.php';
-require __DIR__ . '/lib/embed.php';
-require __DIR__ . '/app/pwa.php';
-require __DIR__ . '/app/admin.php';
 
 date_default_timezone_set(TIMEZONE);
-ensure_dirs();
-auth_start();
 
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: SAMEORIGIN');
@@ -36,12 +31,29 @@ switch ($root) {
     case '':
         redirect(url('admin'));
         break;
+
     case 'p':
+        // Endpoint publik: tanpa sesi, tanpa kode panel admin.
+        lib('stats');
+        lib('useragent');
+        lib('events');
+        require __DIR__ . '/app/pwa.php';
         pwa_route($seg);
         break;
+
     case 'admin':
+        ensure_dirs();
+        lib('auth');
+        lib('icons');
+        lib('stats');
+        lib('useragent');
+        lib('events');
+        lib('embed');
+        require __DIR__ . '/app/admin.php';
+        auth_start();
         admin_route($seg);
         break;
+
     default:
         not_found();
 }

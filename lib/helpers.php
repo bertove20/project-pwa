@@ -195,6 +195,52 @@ function number_short($n)
     return (string) $n;
 }
 
+/**
+ * Muat sebuah berkas lib sekali saja.
+ * Fungsi yang di-require di dalam fungsi tetap terdaftar secara global,
+ * jadi pemuatan bertahap ini aman.
+ */
+function lib($name)
+{
+    static $dimuat = [];
+    if (isset($dimuat[$name])) {
+        return;
+    }
+    $dimuat[$name] = true;
+    require ROOT_DIR . '/lib/' . $name . '.php';
+}
+
+/**
+ * Kirim respons ke pengunjung sekarang juga, lalu biarkan skrip melanjutkan
+ * pekerjaan latar seperti pencatatan statistik.
+ *
+ * Pada redirect /go, pengunjung hanya perlu menunggu satu SELECT; dua operasi
+ * tulis yang menyusul tidak lagi menambah waktu tunggu yang ia rasakan.
+ */
+function response_finish()
+{
+    ignore_user_abort(true);
+
+    // PHP-FPM punya cara resmi untuk ini
+    if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+        return;
+    }
+
+    // mod_php: tutup koneksi dengan memberi tahu panjang isi yang pasti.
+    // ob_get_length() bernilai false bila tidak ada buffer aktif, dan
+    // menyambungnya langsung menghasilkan header Content-Length kosong.
+    if (!headers_sent()) {
+        $panjang = ob_get_length();
+        header('Content-Length: ' . ($panjang === false ? 0 : $panjang));
+        header('Connection: close');
+    }
+    while (ob_get_level() > 0) {
+        ob_end_flush();
+    }
+    flush();
+}
+
 function ensure_dirs()
 {
     foreach ([DATA_DIR, ICON_DIR] as $dir) {

@@ -184,7 +184,70 @@ tabel `events`, sementara `stats_daily` hanya beberapa ratus baris per tahun per
 Ruang yang dibebaskan InnoDB tidak langsung kembali ke sistem operasi; jalankan
 `OPTIMIZE TABLE events;` bila berkasnya perlu benar-benar mengecil.
 
-### Catatan kinerja
+### Kinerja jalur pengunjung
+
+Halaman admin boleh lambat; jalur yang dilewati pengguna akhir tidak. Diukur pada
+Apache + MySQL 8 di Windows, 50 permintaan bersamaan:
+
+| Endpoint | TTFB (p50) | Throughput |
+|---|---|---|
+| `/p/{slug}/go` (buka dari ikon) | 2,6 ms | 343 rps |
+| `/p/{slug}/` (landing) | 3,2 ms | 355 rps |
+| `manifest.webmanifest` | 2,7 ms | 2.461 rps |
+| `sw.js` | 2,7 ms | 2.537 rps |
+| `config.json` | 2,8 ms | 2.122 rps |
+| `track.gif` | 2,3 ms | 301 rps |
+
+Yang membuatnya ringan:
+
+- **Pemeriksaan skema hanya sekali seumur instalasi**, ditandai berkas
+  `data/.skema-v2`. Sebelumnya `SHOW TABLES` dan `SHOW INDEX` dijalankan pada
+  setiap permintaan, termasuk setiap redirect.
+- **Prepare diemulasi** (`ATTR_EMULATE_PREPARES`), sehingga kueri sekali pakai
+  butuh satu perjalanan ke MySQL, bukan dua. Satu redirect: 12 → 4 perjalanan.
+- **Koneksi persisten.** Membangun koneksi baru memakan 9,47 ms per permintaan,
+  memakai ulang hanya 0,14 ms. Setel `DB_PERSISTENT` ke false bila hosting
+  membatasi jumlah koneksi. Perhatikan `max_connections` MySQL harus lebih besar
+  dari jumlah worker web.
+- **Respons dikirim sebelum statistik ditulis.** Pengunjung hanya menunggu satu
+  SELECT; pencatatan menyusul setelah koneksi ditutup. Memangkas TTFB separuh.
+- **Dua penulisan digabung satu transaksi.** InnoDB melakukan fsync pada tiap
+  commit: 3,11 ms menjadi 1,61 ms.
+- **Berkas dimuat sesuai rute.** `app/admin.php` dan `lib/embed.php` bersama-sama
+  hampir separuh kode dan tidak pernah disentuh jalur publik.
+- **Sesi tidak dijalankan** untuk endpoint publik, jadi tidak ada I/O berkas sesi
+  maupun cookie yang dikirim ke pengunjung.
+
+Throughput endpoint yang menulis dibatasi fsync InnoDB, bukan oleh kode. Bila
+perlu lebih tinggi dan kehilangan maksimal satu detik data saat server mati
+mendadak masih bisa diterima, setel `innodb_flush_log_at_trx_commit = 2` di MySQL.
+
+**OPcache belum aktif** di lingkungan ini. Tanpa OPcache, PHP mem-parse ulang
+seluruh berkas pada setiap permintaan (0,82 ms untuk jalur publik). Mengaktifkannya
+di `php.ini` menghilangkan biaya itu sepenuhnya dan merupakan satu perubahan
+konfigurasi dengan dampak terbesar untuk aplikasi PHP mana pun:
+
+```ini
+zend_extension=opcache
+opcache.enable=1
+opcache.memory_consumption=128
+opcache.validate_timestamps=1
+```
+
+### Kinerja landing page eksternal
+
+`go.php` &mdash; titik masuk yang dipakai saat ikon diketuk &mdash; **tidak pernah
+menghubungi panel**; isinya hanya membaca konstanta lalu mengirim redirect. Jadi
+panel yang sedang bermasalah tidak membuat aplikasi pengguna gagal dibuka.
+
+`index.php` dan `manifest.php` memakai cache lokal. Bila cache basi, isi lama
+tetap disajikan lebih dulu dan penyegaran dilakukan setelah halaman terkirim,
+dengan penanda waktu diperbarui di awal agar permintaan yang datang bersamaan
+tidak ikut menghubungi panel. Hasilnya, **panel yang mati sekalipun tidak
+memperlambat landing eksternal**: diuji dengan panel dimatikan dan cache basi,
+setiap kunjungan tetap 1,5 ms.
+
+### Catatan kinerja panel admin
 
 Seluruh angka halaman analitik dihitung dari **satu kali baca** rentang tanggal, bukan satu
 kueri agregat per bagian. Pada 63 ribu baris, dua belas kueri terpisah memakan 1.656 ms
