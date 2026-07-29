@@ -473,6 +473,11 @@ pre.code code { font: inherit; color: inherit; white-space: pre; }
 .tag-open { background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
 .tag-click { background: color-mix(in srgb, #f59e0b 20%, transparent); color: #b45309; }
 .tag-wv { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); margin-left: 4px; }
+.tag-split {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+  color: var(--primary); margin-left: 6px; text-decoration: none; font-size: .68rem;
+}
+.tag-split:hover { background: color-mix(in srgb, var(--primary) 24%, transparent); }
 
 @media (prefers-color-scheme: dark) {
   .tag-click { color: #fbbf24; }

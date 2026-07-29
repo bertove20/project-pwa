@@ -200,14 +200,36 @@ function pwa_go(array $pwa)
         exit;
     }
 
+    // Perayap tidak pernah diberi alamat tujuan. Tanpa ini, mesin pencari dan
+    // pengambil pratinjau tautan bisa mengikuti redirect lalu memuat alamat
+    // target ke indeks publik.
+    $ua = ua_parse($_SERVER['HTTP_USER_AGENT'] ?? '');
+    if ($ua['bot']) {
+        http_response_code(204);
+        header('X-Robots-Tag: noindex, nofollow');
+        header('Cache-Control: no-store');
+        response_finish();
+        stat_hit($pwa['slug'], query('s') === 'pwa' ? 'open' : 'click', 'bot');
+        exit;
+    }
+
     // s=pwa dikirim oleh start_url manifest, artinya dibuka dari ikon home screen
     $fromIcon = query('s') === 'pwa';
+
+    // Kunjungan dari tombol di halaman install boleh diarahkan ke alamat lain,
+    // supaya target PWA yang sebenarnya tidak ikut terbuka oleh sembarang
+    // pengunjung halaman itu. Kosong berarti memakai target yang sama.
+    $tujuan = $pwa['target_url'];
+    if (!$fromIcon && !empty($pwa['web_target_url']) && is_valid_target($pwa['web_target_url'])) {
+        $tujuan = $pwa['web_target_url'];
+    }
 
     // Redirect dikirim lebih dulu; pencatatan statistik menyusul setelah
     // pengunjung sudah berjalan ke target.
     header('Cache-Control: no-store, no-cache, must-revalidate');
     header('Referrer-Policy: no-referrer-when-downgrade');
-    header('Location: ' . $pwa['target_url'], true, 302);
+    header('X-Robots-Tag: noindex, nofollow');
+    header('Location: ' . $tujuan, true, 302);
     response_finish();
 
     stat_hit($pwa['slug'], $fromIcon ? 'open' : 'click', $fromIcon ? 'pwa' : 'web');

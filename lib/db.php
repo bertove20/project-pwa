@@ -75,7 +75,7 @@ function db_reset_state(PDO $pdo)
  * Versi skema. Naikkan bila struktur tabel berubah, agar pemeriksaan
  * dijalankan ulang sekali di setiap instalasi.
  */
-define('SCHEMA_VERSION', 2);
+define('SCHEMA_VERSION', 3);
 
 /**
  * Pemeriksaan skema hanya sekali seumur instalasi, ditandai berkas penanda.
@@ -135,7 +135,7 @@ function db_install(PDO $pdo)
 
     $exists = $pdo->query("SHOW TABLES LIKE 'pwa'")->fetchColumn();
     if ($exists) {
-        db_fix_indexes($pdo);
+        db_upgrade($pdo);
         return;
     }
 
@@ -154,6 +154,7 @@ function db_install(PDO $pdo)
             short_name VARCHAR(40) NOT NULL DEFAULT '',
             description VARCHAR(300) NOT NULL DEFAULT '',
             target_url TEXT NOT NULL,
+            web_target_url TEXT NULL,
             theme_color CHAR(7) NOT NULL DEFAULT '#0f172a',
             background_color CHAR(7) NOT NULL DEFAULT '#ffffff',
             display VARCHAR(16) NOT NULL DEFAULT 'standalone',
@@ -211,7 +212,7 @@ function db_install(PDO $pdo)
  * Perbaikan skema untuk instalasi yang sudah berjalan.
  * Dijalankan sekali per request dan sangat murah bila tidak ada yang perlu diubah.
  */
-function db_fix_indexes(PDO $pdo)
+function db_upgrade(PDO $pdo)
 {
     static $checked = false;
     if ($checked) {
@@ -221,10 +222,24 @@ function db_fix_indexes(PDO $pdo)
 
     // idx_slug_ym membuat optimizer memilih pemindaian seluruh baris milik satu
     // slug ketimbang range scan tanggal pada idx_slug_time. Dibuang bila ada.
-    $ada = $pdo->query("SHOW INDEX FROM events WHERE Key_name = 'idx_slug_ym'")->fetch();
-    if ($ada) {
+    if ($pdo->query("SHOW INDEX FROM events WHERE Key_name = 'idx_slug_ym'")->fetch()) {
         $pdo->exec('ALTER TABLE events DROP INDEX idx_slug_ym');
     }
+
+    // v3: target terpisah untuk tombol "Buka Aplikasi" di halaman install
+    if (!db_column_exists($pdo, 'pwa', 'web_target_url')) {
+        $pdo->exec('ALTER TABLE pwa ADD COLUMN web_target_url TEXT NULL AFTER target_url');
+    }
+}
+
+function db_column_exists(PDO $pdo, $table, $column)
+{
+    $st = $pdo->prepare(
+        'SELECT COUNT(*) FROM information_schema.columns
+         WHERE table_schema = ? AND table_name = ? AND column_name = ?'
+    );
+    $st->execute([DB_NAME, $table, $column]);
+    return (int) $st->fetchColumn() > 0;
 }
 
 /**

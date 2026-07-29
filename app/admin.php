@@ -131,6 +131,12 @@ function admin_save()
         $errors[] = 'Target link harus URL lengkap yang diawali http:// atau https://.';
     }
 
+    // Opsional: kosong berarti tombol memakai target yang sama
+    $webTarget = post('web_target_url');
+    if ($webTarget !== '' && !is_valid_target($webTarget)) {
+        $errors[] = 'URL tombol "Buka Aplikasi" harus diawali http:// atau https://.';
+    }
+
     $theme = is_hex_color(post('theme_color')) ? post('theme_color') : '#0f172a';
     $bg = is_hex_color(post('background_color')) ? post('background_color') : '#ffffff';
     $display = in_array(post('display'), ['standalone', 'fullscreen', 'minimal-ui'], true)
@@ -157,6 +163,7 @@ function admin_save()
         'short_name' => post('short_name') !== '' ? mb_substr(post('short_name'), 0, 12) : mb_substr($name, 0, 12),
         'description' => mb_substr(post('description'), 0, 300),
         'target_url' => $target,
+        'web_target_url' => $webTarget,
         'theme_color' => $theme,
         'background_color' => $bg,
         'display' => $display,

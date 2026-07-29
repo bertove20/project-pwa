@@ -67,11 +67,21 @@ ob_start();
   <div class="panel panel-accent">
     <h2 class="panel-title">Target Link</h2>
     <label class="field">
-      <span>URL tujuan <em>*</em></span>
+      <span>URL tujuan aplikasi <em>*</em></span>
       <input type="url" name="target_url" value="<?= e($val('target_url')) ?>" required
              placeholder="https://situs-tujuan.com" spellcheck="false">
-      <small>Setiap kali aplikasi dibuka dari home screen, pengguna diarahkan ke URL ini.
+      <small>Dipakai saat aplikasi dibuka dari <strong>ikon di layar utama</strong>.
       Ganti kapan saja &mdash; semua HP yang sudah install langsung mengikuti tanpa perlu install ulang.</small>
+    </label>
+
+    <label class="field">
+      <span>URL tombol &ldquo;Buka Aplikasi&rdquo;</span>
+      <input type="url" name="web_target_url" value="<?= e($val('web_target_url')) ?>"
+             placeholder="Kosongkan untuk memakai URL tujuan aplikasi" spellcheck="false">
+      <small>Halaman install bersifat publik, dan tombol di sana bisa diklik siapa saja.
+      Isi kolom ini bila Anda tidak ingin pengunjung biasa sampai ke URL tujuan aplikasi
+      &mdash; tombol akan mengarah ke alamat ini, sedangkan ikon di layar utama tetap
+      membuka URL di atas.</small>
     </label>
 
     <label class="check">

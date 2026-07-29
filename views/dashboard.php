@@ -84,7 +84,13 @@ ob_start();
           <input type="url" name="target_url" value="<?= e($it['target_url']) ?>" spellcheck="false">
           <button type="submit" class="btn btn-sm btn-primary" title="Simpan target baru">Simpan</button>
         </form>
-        <span class="target-note">Diubah <?= e(date('d M Y H:i', strtotime($it['updated_at']))) ?></span>
+        <span class="target-note">
+          Diubah <?= e(date('d M Y H:i', strtotime($it['updated_at']))) ?>
+          <?php if (!empty($it['web_target_url'])): ?>
+            <a class="tag tag-split" href="<?= e(url('admin/edit/' . $it['id'])) ?>"
+               title="Tombol &ldquo;Buka Aplikasi&rdquo; diarahkan ke <?= e($it['web_target_url']) ?>">tombol dipisah</a>
+          <?php endif; ?>
+        </span>
       </td>
 
       <td class="col-stat">

@@ -62,6 +62,32 @@ tidak ikut ke repo: isinya milik tiap instalasi (hash password, daftar PWA, stat
 | `/p/{slug}/track.gif` | Pixel statistik untuk landing page di domain lain |
 | `/p/{slug}/config.json` | Sumber data live untuk landing page di domain lain |
 
+## Dua target yang terpisah
+
+Halaman install bersifat publik dan tombol di sana bisa diklik siapa saja. Bila Anda tidak
+ingin pengunjung biasa sampai ke alamat tujuan aplikasi, isi **URL tombol &ldquo;Buka Aplikasi&rdquo;**
+pada formulir PWA:
+
+| Dibuka dari | Diarahkan ke |
+|---|---|
+| Ikon di layar utama (`start_url`) | `target_url` |
+| Tombol &ldquo;Buka Aplikasi&rdquo; di halaman install | `web_target_url`, atau `target_url` bila dikosongkan |
+
+Berlaku juga untuk tombol pada landing page di domain lain, karena keduanya melewati
+endpoint `/go` yang sama. PWA yang memakai target terpisah ditandai label
+&ldquo;tombol dipisah&rdquo; di daftar PWA.
+
+Perayap mesin pencari dan pengambil pratinjau tautan tidak pernah diberi alamat tujuan:
+`/go` membalas `204 No Content` untuk User-Agent yang dikenali sebagai bot, dan selalu
+mengirim header `X-Robots-Tag: noindex, nofollow`. Alamat tujuan juga tidak pernah muncul
+di `config.json` maupun `manifest.webmanifest`.
+
+**Batasannya perlu dipahami.** `start_url` pada manifest bersifat publik, sehingga siapa pun
+yang membuka manifest bisa menemukan `/go?s=pwa` lalu mengikutinya dengan peramban biasa.
+Pemisahan ini menutup alamat tujuan dari pengunjung awam, mesin pencari, dan pratinjau
+tautan &mdash; bukan dari orang yang memang sengaja menelusurinya. Untuk pembatasan
+sungguhan, alamat tujuan harus memeriksa sendiri siapa yang datang.
+
 ## Landing page di domain lain
 
 Manifest, service worker, dan `start_url` **wajib satu origin** dengan halaman yang memasang PWA.
