@@ -49,7 +49,7 @@ ob_start();
   <thead>
     <tr>
       <th class="col-app">Aplikasi</th>
-      <th class="col-target">Target link (bisa diubah langsung)</th>
+      <th class="col-target">Target link <span class="th-hint">ubah langsung di sini</span></th>
       <th class="col-stat">Statistik</th>
       <th class="col-status">Status</th>
       <th class="col-act">Aksi</th>
@@ -88,12 +88,12 @@ ob_start();
       </td>
 
       <td class="col-stat">
-        <div class="ministat">
-          <span title="Install"><b><?= number_short($st['totals']['install']) ?></b> install</span>
-          <span title="Dibuka dari ikon home screen"><b><?= number_short($st['totals']['open']) ?></b> buka</span>
-          <span title="Klik dari landing page"><b><?= number_short($st['totals']['click']) ?></b> klik</span>
-        </div>
-        <a class="link-sm" href="<?= e(url('admin/stats/' . $it['slug'])) ?>">Lihat grafik &rarr;</a>
+        <a class="ministat" href="<?= e(url('admin/stats/' . $it['slug'])) ?>"
+           title="Lihat analitik lengkap <?= e($it['name']) ?>">
+          <span><b><?= number_short($st['totals']['install']) ?></b>install</span>
+          <span><b><?= number_short($st['totals']['open']) ?></b>buka</span>
+          <span><b><?= number_short($st['totals']['click']) ?></b>klik</span>
+        </a>
       </td>
 
       <td class="col-status">
@@ -106,15 +106,20 @@ ob_start();
 
       <td class="col-act">
         <div class="actions">
-          <button class="btn btn-sm btn-ghost copy-btn" data-copy="<?= e($installUrl) ?>">Salin link</button>
-          <a class="btn btn-sm btn-ghost" href="<?= e($installUrl) ?>" target="_blank" rel="noopener">Buka</a>
-          <a class="btn btn-sm btn-ghost" href="<?= e(url('admin/embed/' . $it['slug'])) ?>" title="Kode untuk landing page di domain lain">Kode</a>
-          <a class="btn btn-sm btn-ghost" href="<?= e(url('admin/edit/' . $it['id'])) ?>">Edit</a>
+          <button type="button" class="icon-btn copy-btn" data-copy="<?= e($installUrl) ?>"
+                  title="Salin link install" aria-label="Salin link install"><?= ikon('salin') ?></button>
+          <a class="icon-btn" href="<?= e($installUrl) ?>" target="_blank" rel="noopener"
+             title="Buka halaman install" aria-label="Buka halaman install"><?= ikon('buka') ?></a>
+          <a class="icon-btn" href="<?= e(url('admin/embed/' . $it['slug'])) ?>"
+             title="Kode landing page untuk domain lain" aria-label="Kode landing eksternal"><?= ikon('kode') ?></a>
+          <a class="icon-btn" href="<?= e(url('admin/edit/' . $it['id'])) ?>"
+             title="Edit PWA" aria-label="Edit"><?= ikon('edit') ?></a>
           <form method="post" action="<?= e(url('admin/delete')) ?>" class="inline-form"
                 onsubmit="return confirm('Hapus PWA &quot;<?= e($it['name']) ?>&quot;? Ikon dan statistiknya ikut terhapus.');">
             <?= csrf_field() ?>
             <input type="hidden" name="id" value="<?= e($it['id']) ?>">
-            <button type="submit" class="btn btn-sm btn-danger">Hapus</button>
+            <button type="submit" class="icon-btn is-danger"
+                    title="Hapus PWA" aria-label="Hapus"><?= ikon('hapus') ?></button>
           </form>
         </div>
       </td>

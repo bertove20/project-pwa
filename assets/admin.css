@@ -165,51 +165,93 @@ input[type="file"] { font-size: .88rem; color: var(--muted); }
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto;
 }
-.table { width: 100%; border-collapse: collapse; min-width: 940px; }
+.table { width: 100%; border-collapse: collapse; min-width: 960px; }
 .table th {
-  text-align: left; font-size: .74rem; font-weight: 650; letter-spacing: .05em;
+  text-align: left; font-size: .72rem; font-weight: 650; letter-spacing: .05em;
   text-transform: uppercase; color: var(--muted);
-  padding: 13px 16px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  padding: 11px 14px; border-bottom: 1px solid var(--border); white-space: nowrap;
 }
-.table td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.table td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .table tbody tr:last-child td { border-bottom: 0; }
 .table tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 55%, transparent); }
 
-.col-app { width: 24%; }
-.col-target { width: 34%; }
-.col-stat { width: 16%; }
-.col-status { width: 10%; }
-.col-act { width: 16%; }
+/* Lebar persen mengikuti lebar tabel, yang menyusut saat layar sempit.
+   Batas minimum menjaga nama aplikasi tetap sebaris; tabel tinggal digeser. */
+.col-app { width: 26%; min-width: 215px; }
+.col-target { width: 36%; min-width: 265px; }
+.col-stat { width: 14%; min-width: 160px; }
+.col-status { width: 10%; min-width: 105px; }
+.col-act { width: 14%; min-width: 195px; }
+.col-stat, .col-status, .col-act { text-align: center; }
+th.col-stat, th.col-status, th.col-act { text-align: center; }
+.th-hint {
+  text-transform: none; letter-spacing: 0; font-weight: 500;
+  opacity: .65; margin-left: 6px;
+}
 
-.app-cell { display: flex; gap: 12px; align-items: center; }
-.app-icon { width: 44px; height: 44px; border-radius: 11px; object-fit: cover; flex: 0 0 auto; background: var(--surface-2); }
-.app-icon-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.15rem; }
-.app-meta { display: flex; flex-direction: column; min-width: 0; }
-.app-name { font-weight: 650; text-decoration: none; color: var(--text); }
+.app-cell { display: flex; gap: 11px; align-items: center; }
+.app-icon { width: 40px; height: 40px; border-radius: 10px; object-fit: cover; flex: 0 0 auto; background: var(--surface-2); }
+.app-icon-fallback { display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 1.05rem; }
+.app-meta { display: flex; flex-direction: column; min-width: 0; gap: 1px; }
+.app-name { font-weight: 650; text-decoration: none; color: var(--text); line-height: 1.3; }
 .app-name:hover { color: var(--primary); }
-.app-slug { font-size: .8rem; color: var(--muted); font-family: ui-monospace, Menlo, Consolas, monospace; }
+.app-slug {
+  font-size: .76rem; color: var(--muted);
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 
 .quick-target { display: flex; gap: 6px; }
-.quick-target input { font-size: .87rem; font-family: ui-monospace, Menlo, Consolas, monospace; }
+.quick-target input { font-size: .85rem; font-family: ui-monospace, Menlo, Consolas, monospace; padding: 8px 11px; }
+.quick-target .btn { padding: 0 14px; }
 .quick-target.is-dirty input { border-color: var(--warn); }
 .quick-target.is-saved input { border-color: var(--success); }
-.target-note { display: block; margin-top: 5px; font-size: .77rem; color: var(--muted); }
+.target-note { display: block; margin-top: 5px; font-size: .74rem; color: var(--muted); }
 
-.ministat { display: flex; flex-direction: column; gap: 1px; font-size: .82rem; color: var(--muted); }
-.ministat b { color: var(--text); font-weight: 650; }
+/* Tiga angka sejajar; menumpuk vertikal membuat barisnya jadi tinggi sekali.
+   Lebar kolom dipatok agar angka tetap sebaris lurus antar baris tabel,
+   berapa pun besar angkanya. */
+.ministat {
+  display: inline-grid; grid-template-columns: repeat(3, 46px);
+  gap: 0 2px; text-decoration: none; padding: 5px 6px; border-radius: 9px;
+  transition: background .15s ease;
+}
+.ministat:hover { background: var(--surface-2); }
+.ministat span { display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.ministat b { color: var(--text); font-weight: 700; font-size: .95rem; font-variant-numeric: tabular-nums; }
+.ministat span { font-size: .68rem; color: var(--muted); letter-spacing: .02em; }
+
+/* Lima tombol berlabel teks terpaksa membungkus jadi tiga baris; ikon muat satu baris */
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 31px; height: 31px; padding: 0; flex: 0 0 auto;
+  border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); cursor: pointer;
+  color: color-mix(in srgb, var(--text) 62%, transparent);
+  text-decoration: none; transition: color .15s ease, background .15s ease, border-color .15s ease;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--primary); border-color: var(--primary); }
+.icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.icon-btn.is-danger:hover {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 45%, transparent);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+}
+.icon-btn.is-done { color: var(--success); border-color: color-mix(in srgb, var(--success) 45%, transparent); }
 
 .toggle {
-  display: inline-flex; align-items: center; gap: 7px; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 999px; padding: 5px 11px 5px 8px;
-  font: inherit; font-size: .82rem; font-weight: 600; color: var(--muted);
+  border-radius: 999px; padding: 5px 11px 5px 9px;
+  font: inherit; font-size: .78rem; font-weight: 600; color: var(--muted);
+  white-space: nowrap;
 }
 .toggle-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
 .toggle.is-on { color: var(--success); border-color: color-mix(in srgb, var(--success) 35%, transparent); background: color-mix(in srgb, var(--success) 10%, transparent); }
 .toggle.is-on .toggle-dot { background: var(--success); box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 20%, transparent); }
 
-.actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.inline-form { display: inline; }
+.actions { display: flex; gap: 5px; justify-content: center; flex-wrap: nowrap; }
+.inline-form { display: inline-flex; }
 
 .empty {
   background: var(--surface); border: 1px dashed var(--border); border-radius: var(--radius);

@@ -241,6 +241,29 @@ function response_finish()
     flush();
 }
 
+/**
+ * Ikon garis 16px untuk tombol aksi. Ditulis inline supaya tidak ada
+ * permintaan berkas tambahan dan warnanya ikut warna teks tombol.
+ */
+function ikon($nama)
+{
+    $jalur = [
+        'salin' => '<rect x="6.5" y="6.5" width="9" height="9" rx="2"/><path d="M3.5 11.5v-7a2 2 0 0 1 2-2h7"/>',
+        'buka' => '<path d="M14 3h4v4"/><path d="M18 3l-7.5 7.5"/><path d="M15 12.5v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h3"/>',
+        'kode' => '<path d="M7.5 6L3 10.5 7.5 15"/><path d="M13.5 6L18 10.5 13.5 15"/>',
+        'edit' => '<path d="M12.5 3.5l4 4L7 17H3v-4z"/>',
+        'hapus' => '<path d="M3.5 5.5h14"/><path d="M8 5.5V4a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1.5"/>'
+            . '<path d="M5.5 5.5l.8 11a1 1 0 0 0 1 1h6.4a1 1 0 0 0 1-1l.8-11"/>',
+        'cari' => '<circle cx="9" cy="9" r="5.5"/><path d="M13 13l4 4"/>',
+    ];
+    if (!isset($jalur[$nama])) {
+        return '';
+    }
+    return '<svg viewBox="0 0 21 21" width="16" height="16" fill="none" stroke="currentColor"'
+        . ' stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+        . $jalur[$nama] . '</svg>';
+}
+
 function ensure_dirs()
 {
     foreach ([DATA_DIR, ICON_DIR] as $dir) {

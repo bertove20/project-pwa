@@ -111,7 +111,12 @@
   document.querySelectorAll('.copy-btn').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var text = btn.dataset.copy;
-      var done = function () { toast('Link install disalin.'); };
+      var done = function () {
+        toast('Link install disalin.');
+        // Tombolnya kini berupa ikon, jadi umpan baliknya lewat warna
+        btn.classList.add('is-done');
+        setTimeout(function () { btn.classList.remove('is-done'); }, 1400);
+      };
 
       if (navigator.clipboard && window.isSecureContext) {
         navigator.clipboard.writeText(text).then(done, fallback);
