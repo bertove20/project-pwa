@@ -7,7 +7,7 @@
 /** @var int $days */
 /** @var bool $isCustom */
 /** @var array $filters */
-/** @var int $storage */
+/** @var int $logRows */
 
 $evLabel = [
     'view' => 'Kunjungan',
@@ -343,8 +343,11 @@ ob_start();
 <div class="panel">
   <h2 class="panel-title">Kelola data</h2>
   <dl class="kv">
-    <dt>Ukuran log</dt><dd><?= e(event_format_size($storage)) ?></dd>
-    <dt>Masa simpan</dt><dd>Rincian <?= (int) EVENT_RETENTION_MONTHS ?> bulan, agregat harian <?= (int) STATS_RETENTION_DAYS ?> hari</dd>
+    <dt>Baris log PWA ini</dt><dd><?= number_format($logRows, 0, ',', '.') ?> baris</dd>
+    <dt>Masa simpan</dt>
+    <dd>Tidak dibatasi &mdash; data lama tetap tersimpan untuk analisa.
+        <small class="block muted">Penghapusan dilakukan manual per rentang bulan lewat
+        <a href="<?= e(url('admin/maintenance?slug=' . urlencode($pwa['slug']))) ?>">menu Pemeliharaan</a>.</small></dd>
     <dt>Total sepanjang masa</dt>
     <dd><?= number_short($totals['view']) ?> kunjungan &middot; <?= number_short($totals['install']) ?> install
         &middot; <?= number_short($totals['open']) ?> buka &middot; <?= number_short($totals['click']) ?> klik

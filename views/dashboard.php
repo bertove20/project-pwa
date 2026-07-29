@@ -56,9 +56,12 @@ ob_start();
     </tr>
   </thead>
   <tbody>
-  <?php foreach ($items as $it):
+  <?php
+  // Satu kueri agregat untuk seluruh baris, bukan satu kueri per PWA
+  $totalsMap = stats_totals_map();
+  foreach ($items as $it):
       $ico = icon_url($it, 192);
-      $st = stats_for($it['slug']);
+      $st = ['totals' => $totalsMap[$it['slug']] ?? array_fill_keys(STAT_EVENTS, 0)];
       $installUrl = abs_url('p/' . $it['slug'] . '/');
   ?>
     <tr data-id="<?= e($it['id']) ?>">

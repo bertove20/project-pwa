@@ -26,6 +26,7 @@ $path = request_path();
     <nav class="topnav">
       <a href="<?= e(url('admin')) ?>" class="<?= $path === 'admin' ? 'is-active' : '' ?>">Daftar PWA</a>
       <a href="<?= e(url('admin/new')) ?>" class="<?= $path === 'admin/new' ? 'is-active' : '' ?>">Tambah</a>
+      <a href="<?= e(url('admin/maintenance')) ?>" class="<?= $path === 'admin/maintenance' ? 'is-active' : '' ?>">Pemeliharaan</a>
       <a href="<?= e(url('admin/settings')) ?>" class="<?= $path === 'admin/settings' ? 'is-active' : '' ?>">Pengaturan</a>
       <a href="<?= e(url('admin/logout')) ?>" class="muted-link">Keluar</a>
     </nav>
@@ -51,7 +52,8 @@ $path = request_path();
 </main>
 
 <footer class="wrap foot">
-  <?= e(APP_NAME) ?> v<?= e(APP_VERSION) ?> &middot; data tersimpan di <code>data/pwa.json</code>
+  <?= e(APP_NAME) ?> v<?= e(APP_VERSION) ?> &middot; database <code><?= e(DB_NAME) ?></code> di <?= e(DB_HOST) ?>
+  &middot; ikon di <code>uploads/icons/</code>
 </footer>
 
 <script>window.CSRF_TOKEN = <?= json_encode(csrf_token()) ?>; window.BASE = <?= json_encode(url('')) ?>;</script>

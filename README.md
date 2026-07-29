@@ -22,7 +22,22 @@ Panel baca target terbaru dari data/pwa.json
 Karena `start_url` tidak pernah berubah, mengganti target link di panel langsung
 berlaku untuk semua HP yang sudah memasang aplikasi tersebut.
 
+## Kebutuhan
+
+PHP 7.4+ dengan ekstensi **pdo_mysql**, **gd**, **mbstring**, dan **fileinfo**, serta
+MySQL 5.7+ / MariaDB 10.3+.
+
 ## Menjalankan
+
+Atur kredensial database di [config.php](config.php). Dengan `DB_AUTO_CREATE` bernilai true,
+panel membuat sendiri database `pwa_manager` beserta tabelnya saat pertama kali dibuka.
+Di hosting yang penggunanya tidak berhak membuat database, buat dulu secara manual lalu
+setel `DB_AUTO_CREATE` ke false.
+
+Instalasi lama yang masih memakai penyimpanan JSON tidak perlu tindakan apa pun: isi
+`data/*.json` dan `data/events/` otomatis dipindahkan ke database saat skema pertama kali
+dibuat, lalu berkasnya ditandai `.migrated` (tidak dihapus) dan ringkasannya dicatat di
+`data/migrasi-*.log`.
 
 Folder ini sudah siap dipakai di Laragon (Apache + mod_rewrite). Akses lewat:
 
@@ -131,10 +146,13 @@ Empat peristiwa dicatat per PWA:
 
 Disimpan dalam dua lapis:
 
-| Lapis | Berkas | Isi | Masa simpan |
-|---|---|---|---|
-| Agregat harian | `data/stats.json` | Jumlah per peristiwa per hari, untuk kartu dashboard | 120 hari |
-| Rincian | `data/events/{slug}/{YYYY-MM}.jsonl` | Satu baris per kejadian | 12 bulan |
+| Lapis | Tabel | Isi |
+|---|---|---|
+| Agregat harian | `stats_daily` | Jumlah per peristiwa per hari, untuk kartu dashboard |
+| Rincian | `events` | Satu baris per kejadian |
+
+**Tidak ada penghapusan otomatis.** Data lama tetap tersimpan untuk keperluan analisa;
+pelepasan ruang dilakukan manual per rentang bulan lewat menu **Pemeliharaan**.
 
 Tiap baris rincian memuat tanggal dan jam persis, jenis peristiwa, sumber trafik
 (ikon home screen / landing panel / landing domain lain / tombol landing), jenis perangkat,
@@ -151,6 +169,31 @@ dan perujuk, tabel peristiwa terbaru, serta ekspor CSV yang mengikuti filter akt
 Bot dan perayap dikenali dan disembunyikan secara bawaan. Trafik dari webview aplikasi
 (Facebook, Instagram, TikTok) ditandai khusus karena webview tidak pernah menampilkan tombol
 install PWA &mdash; berguna untuk menjelaskan angka install yang rendah dari sumber tersebut.
+
+### Pemeliharaan data
+
+`/admin/maintenance` menampilkan jumlah baris per bulan, ukuran tabel, dan formulir penghapusan
+per rentang bulan &mdash; bisa dibatasi ke satu PWA atau seluruhnya. Penghapusan meminta rentang
+diketik ulang sebagai konfirmasi, dan dijalankan bertahap per 5.000 baris agar tabel besar tidak
+terkunci lama.
+
+Pilihan **pertahankan ringkasan harian** membuang rincian per kejadian tapi menyisakan grafik
+jumlah harian dan total sepanjang masa. Ini biasanya yang diinginkan: ruang terbesar dipakai
+tabel `events`, sementara `stats_daily` hanya beberapa ratus baris per tahun per PWA.
+
+Ruang yang dibebaskan InnoDB tidak langsung kembali ke sistem operasi; jalankan
+`OPTIMIZE TABLE events;` bila berkasnya perlu benar-benar mengecil.
+
+### Catatan kinerja
+
+Seluruh angka halaman analitik dihitung dari **satu kali baca** rentang tanggal, bukan satu
+kueri agregat per bagian. Pada 63 ribu baris, dua belas kueri terpisah memakan 1.656 ms
+sedangkan satu lintasan hanya 335 ms.
+
+Indeks `events` sengaja hanya `(slug, occurred_at)` dan `(ym)`. Jangan menambahkan
+`(slug, ym)`: kolom depannya sama dengan indeks pertama, dan optimizer sempat memilihnya
+lalu memindai seluruh baris milik satu slug alih-alih range scan tanggal &mdash; halaman
+analitik melambat sepuluh kali lipat.
 
 ## Catatan penting
 

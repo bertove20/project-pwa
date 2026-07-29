@@ -436,6 +436,21 @@ pre.code code { font: inherit; color: inherit; white-space: pre; }
   .tag-click { color: #fbbf24; }
 }
 
+/* ------------------------------------------------------------ Pemeliharaan */
+
+.panel-danger { border-color: color-mix(in srgb, var(--danger) 40%, var(--border)); }
+.danger-box {
+  margin-top: 16px; padding: 16px; border-radius: 10px;
+  background: color-mix(in srgb, var(--danger) 7%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 22%, transparent);
+}
+.danger-box .field { margin-bottom: 12px; }
+.danger-box code {
+  background: var(--surface); padding: 2px 6px; border-radius: 4px; font-weight: 600;
+}
+#ringkasan-hapus { margin-bottom: 14px; }
+.table .sub { display: block; font-size: .72rem; color: var(--muted); font-weight: 400; }
+
 /* ------------------------------------------------------------------- Login */
 
 .login-body {

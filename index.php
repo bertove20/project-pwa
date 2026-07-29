@@ -10,6 +10,7 @@
 
 require __DIR__ . '/config.php';
 require __DIR__ . '/lib/helpers.php';
+require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/store.php';
 require __DIR__ . '/lib/auth.php';
 require __DIR__ . '/lib/icons.php';

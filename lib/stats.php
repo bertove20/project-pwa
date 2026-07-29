@@ -1,13 +1,14 @@
 <?php
 
 /**
- * Statistik sederhana per PWA, diagregasi harian.
+ * Penghitung agregat harian.
  *
- * Event:
- *   view    - landing page promosi dibuka
- *   install - browser melaporkan aplikasi terpasang
- *   open    - PWA dibuka dari ikon home screen (start_url)
- *   click   - target dibuka dari tombol landing / link langsung
+ * Dipakai kartu dashboard yang membaca angka lintas semua PWA sekaligus,
+ * sehingga tidak layak dihitung ulang dari tabel events setiap kali.
+ * Rincian per kejadian ada di lib/events.php.
+ *
+ * Tidak ada pemangkasan otomatis: data lama tetap tersimpan dan hanya
+ * dihapus manual lewat menu Pemeliharaan.
  */
 
 define('STAT_EVENTS', ['view', 'install', 'open', 'click']);
@@ -22,122 +23,83 @@ function stat_hit($slug, $event, $src = '')
         return;
     }
 
-    // Lapisan detail: tanggal, jam, dan perangkat per kejadian
+    // Lapisan rincian: tanggal, jam, perangkat, browser, sumber
     event_log($slug, $event, $src);
 
-    $day = today();
-    store_update('stats', function ($data) use ($slug, $event, $day) {
-        if (!isset($data[$slug])) {
-            $data[$slug] = ['totals' => array_fill_keys(STAT_EVENTS, 0), 'daily' => []];
-        }
-        if (!isset($data[$slug]['totals'][$event])) {
-            $data[$slug]['totals'][$event] = 0;
-        }
-        $data[$slug]['totals'][$event]++;
-
-        if (!isset($data[$slug]['daily'][$day])) {
-            $data[$slug]['daily'][$day] = array_fill_keys(STAT_EVENTS, 0);
-        }
-        $data[$slug]['daily'][$day][$event] = ($data[$slug]['daily'][$day][$event] ?? 0) + 1;
-        $data[$slug]['last_hit'] = $day;
-
-        // Buang data harian yang sudah lewat masa simpan
-        $cutoff = date('Y-m-d', strtotime('-' . STATS_RETENTION_DAYS . ' days'));
-        foreach (array_keys($data[$slug]['daily']) as $d) {
-            if ($d < $cutoff) {
-                unset($data[$slug]['daily'][$d]);
-            }
-        }
-        return $data;
-    });
+    db_run(
+        'INSERT INTO stats_daily (slug, day, event, hits) VALUES (?, ?, ?, 1)
+         ON DUPLICATE KEY UPDATE hits = hits + 1',
+        [$slug, today(), $event]
+    );
 }
 
-function stats_all()
-{
-    return store_read('stats', []);
-}
-
+/** Total sepanjang masa + rincian harian untuk satu PWA. */
 function stats_for($slug)
 {
-    $all = stats_all();
-    if (!isset($all[$slug])) {
-        return ['totals' => array_fill_keys(STAT_EVENTS, 0), 'daily' => []];
-    }
-    $s = $all[$slug];
-    $s['totals'] = array_merge(array_fill_keys(STAT_EVENTS, 0), $s['totals'] ?? []);
-    $s['daily'] = $s['daily'] ?? [];
-    return $s;
+    $totals = array_merge(
+        array_fill_keys(STAT_EVENTS, 0),
+        db_pairs('SELECT event, SUM(hits) FROM stats_daily WHERE slug = ? GROUP BY event', [$slug])
+    );
+    return ['totals' => $totals];
 }
 
 function stats_reset($slug)
 {
-    store_update('stats', function ($data) use ($slug) {
-        unset($data[$slug]);
-        return $data;
-    });
+    db_run('DELETE FROM stats_daily WHERE slug = ?', [$slug]);
     event_delete($slug);
 }
 
-/** Pindahkan riwayat statistik saat slug PWA diubah. */
 function stats_rename($oldSlug, $newSlug)
 {
     if ($oldSlug === $newSlug) {
         return;
     }
-    store_update('stats', function ($data) use ($oldSlug, $newSlug) {
-        if (isset($data[$oldSlug])) {
-            $data[$newSlug] = $data[$oldSlug];
-            unset($data[$oldSlug]);
-        }
-        return $data;
-    });
+    db_run('UPDATE stats_daily SET slug = ? WHERE slug = ?', [$newSlug, $oldSlug]);
     event_rename($oldSlug, $newSlug);
 }
 
-/** Deret harian $days terakhir, selalu lengkap termasuk hari bernilai nol. */
-function stats_series($slug, $days = 30)
-{
-    $s = stats_for($slug);
-    $out = [];
-    for ($i = $days - 1; $i >= 0; $i--) {
-        $d = date('Y-m-d', strtotime("-$i days"));
-        $row = $s['daily'][$d] ?? [];
-        $out[] = [
-            'date' => $d,
-            'view' => (int) ($row['view'] ?? 0),
-            'install' => (int) ($row['install'] ?? 0),
-            'open' => (int) ($row['open'] ?? 0),
-            'click' => (int) ($row['click'] ?? 0),
-        ];
-    }
-    return $out;
-}
-
-/** Jumlah event pada rentang $days terakhir (0 = hari ini saja). */
+/** Jumlah satu jenis peristiwa pada $days hari terakhir. */
 function stats_sum($slug, $event, $days = 1)
 {
-    $s = stats_for($slug);
-    $sum = 0;
-    for ($i = 0; $i < max(1, $days); $i++) {
-        $d = date('Y-m-d', strtotime("-$i days"));
-        $sum += (int) ($s['daily'][$d][$event] ?? 0);
-    }
+    return (int) db_val(
+        'SELECT COALESCE(SUM(hits), 0) FROM stats_daily
+         WHERE slug = ? AND event = ? AND day >= ?',
+        [$slug, $event, date('Y-m-d', strtotime('-' . (max(1, $days) - 1) . ' days'))],
+        0
+    );
+}
+
+/**
+ * Ringkasan lintas seluruh PWA untuk kartu dashboard.
+ * Dua kueri agregat, bukan satu per PWA.
+ */
+function stats_overview(array $items)
+{
+    $sum = array_merge(
+        ['view' => 0, 'install' => 0, 'open' => 0, 'click' => 0],
+        db_pairs('SELECT event, SUM(hits) FROM stats_daily GROUP BY event')
+    );
+
+    $today = db_pairs(
+        'SELECT event, SUM(hits) FROM stats_daily WHERE day = ? GROUP BY event',
+        [today()]
+    );
+
+    $sum['today_traffic'] = (int) ($today['open'] ?? 0) + (int) ($today['click'] ?? 0);
     return $sum;
 }
 
-/** Ringkasan global untuk kartu di dashboard. */
-function stats_overview(array $items)
+/** Total per PWA untuk seluruh daftar sekaligus, dipakai tabel dashboard. */
+function stats_totals_map()
 {
-    $sum = ['view' => 0, 'install' => 0, 'open' => 0, 'click' => 0];
-    $todayOpen = 0;
-    foreach ($items as $it) {
-        $s = stats_for($it['slug']);
-        foreach ($sum as $k => $_) {
-            $sum[$k] += (int) ($s['totals'][$k] ?? 0);
+    return mem_get('stats.map', function () {
+        $map = [];
+        foreach (db_all('SELECT slug, event, SUM(hits) AS n FROM stats_daily GROUP BY slug, event') as $r) {
+            if (!isset($map[$r['slug']])) {
+                $map[$r['slug']] = array_fill_keys(STAT_EVENTS, 0);
+            }
+            $map[$r['slug']][$r['event']] = (int) $r['n'];
         }
-        $todayOpen += (int) ($s['daily'][today()]['open'] ?? 0)
-            + (int) ($s['daily'][today()]['click'] ?? 0);
-    }
-    $sum['today_traffic'] = $todayOpen;
-    return $sum;
+        return $map;
+    });
 }

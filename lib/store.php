@@ -1,225 +1,181 @@
 <?php
 
 /**
- * Penyimpanan flat-file JSON dengan file locking.
- * Semua tulis memakai LOCK_EX + rename atomik supaya file tidak pernah setengah jadi.
+ * Penyimpanan data PWA dan pengaturan panel.
+ * Sejak v2 seluruhnya di database; berkas JSON lama otomatis dipindahkan
+ * saat skema pertama kali dibuat (lihat lib/db.php).
  */
-
-function store_path($name)
-{
-    return DATA_DIR . '/' . $name . '.json';
-}
 
 /**
- * Cache per-request. Satu halaman dashboard membaca pwa.json dan stats.json
- * puluhan kali, jadi hasilnya disimpan sampai ada penulisan.
+ * Cache seumur-request. Dipakai lewat referensi supaya bisa dikosongkan
+ * setelah penulisan; cache `static` di dalam fungsi tidak bisa dijangkau
+ * dari luar sehingga perubahan tidak akan terlihat pada request yang sama.
  */
-function &store_cache()
+function &mem_cache()
 {
-    static $cache = [];
-    return $cache;
+    static $c = [];
+    return $c;
 }
 
-function store_cache_clear($name = null)
+function mem_get($key, callable $build)
 {
-    $cache = &store_cache();
-    if ($name === null) {
-        $cache = [];
-    } else {
-        unset($cache[$name]);
+    $c = &mem_cache();
+    if (!array_key_exists($key, $c)) {
+        $c[$key] = $build();
+    }
+    return $c[$key];
+}
+
+function mem_clear($prefix = null)
+{
+    $c = &mem_cache();
+    if ($prefix === null) {
+        $c = [];
+        return;
+    }
+    foreach (array_keys($c) as $k) {
+        if (strpos($k, $prefix) === 0) {
+            unset($c[$k]);
+        }
     }
 }
 
-function store_read($name, $default = [])
+/** Ubah baris database menjadi bentuk array yang dipakai view. */
+function pwa_hydrate(array $r)
 {
-    $cache = &store_cache();
-    if (array_key_exists($name, $cache)) {
-        return $cache[$name];
-    }
-
-    $file = store_path($name);
-    if (!is_file($file)) {
-        return $default;
-    }
-    $fh = @fopen($file, 'rb');
-    if (!$fh) {
-        return $default;
-    }
-    flock($fh, LOCK_SH);
-    $raw = stream_get_contents($fh);
-    flock($fh, LOCK_UN);
-    fclose($fh);
-
-    $data = json_decode((string) $raw, true);
-    $cache[$name] = is_array($data) ? $data : $default;
-    return $cache[$name];
+    return [
+        'id' => $r['id'],
+        'slug' => $r['slug'],
+        'name' => $r['name'],
+        'short_name' => $r['short_name'],
+        'description' => $r['description'],
+        'target_url' => $r['target_url'],
+        'theme_color' => $r['theme_color'],
+        'background_color' => $r['background_color'],
+        'display' => $r['display'],
+        'orientation' => $r['orientation'],
+        'active' => (bool) $r['active'],
+        'icon_svg' => (bool) $r['icon_svg'],
+        'icon_ver' => (int) $r['icon_ver'],
+        'created_at' => $r['created_at'],
+        'updated_at' => $r['updated_at'],
+    ];
 }
-
-function store_write($name, $data)
-{
-    ensure_dirs();
-    store_cache_clear($name);
-    $file = store_path($name);
-    $tmp = $file . '.' . getmypid() . '.tmp';
-    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-    if ($json === false) {
-        return false;
-    }
-    if (file_put_contents($tmp, $json, LOCK_EX) === false) {
-        return false;
-    }
-    // rename() pada Windows gagal bila tujuan ada, jadi pakai copy+unlink sebagai fallback
-    if (!@rename($tmp, $file)) {
-        $ok = @copy($tmp, $file);
-        @unlink($tmp);
-        return $ok;
-    }
-    return true;
-}
-
-/**
- * Baca-ubah-tulis dalam satu lock eksklusif.
- * $fn menerima data saat ini dan mengembalikan data baru.
- */
-function store_update($name, callable $fn)
-{
-    ensure_dirs();
-    store_cache_clear($name);
-    $file = store_path($name);
-    $fh = fopen($file, 'c+b');
-    if (!$fh) {
-        return false;
-    }
-    flock($fh, LOCK_EX);
-
-    $raw = stream_get_contents($fh);
-    $data = json_decode((string) $raw, true);
-    if (!is_array($data)) {
-        $data = [];
-    }
-
-    $new = $fn($data);
-    $json = json_encode($new, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
-
-    ftruncate($fh, 0);
-    rewind($fh);
-    fwrite($fh, (string) $json);
-    fflush($fh);
-    flock($fh, LOCK_UN);
-    fclose($fh);
-
-    return $new;
-}
-
-/* ---------------------------------------------------------------- PWA CRUD */
 
 function pwa_all($onlyActive = false)
 {
-    $data = store_read('pwa', ['items' => []]);
-    $items = isset($data['items']) && is_array($data['items']) ? $data['items'] : [];
-    if ($onlyActive) {
-        $items = array_values(array_filter($items, function ($i) {
-            return !empty($i['active']);
-        }));
-    }
-    usort($items, function ($a, $b) {
-        return strcmp($a['name'] ?? '', $b['name'] ?? '');
+    return mem_get('pwa.' . ($onlyActive ? 'aktif' : 'semua'), function () use ($onlyActive) {
+        $sql = 'SELECT * FROM pwa' . ($onlyActive ? ' WHERE active = 1' : '') . ' ORDER BY name ASC';
+        return array_map('pwa_hydrate', db_all($sql));
     });
-    return $items;
 }
 
 function pwa_find($slug)
 {
-    foreach (pwa_all() as $item) {
-        if (($item['slug'] ?? '') === $slug) {
-            return $item;
-        }
-    }
-    return null;
+    $r = db_row('SELECT * FROM pwa WHERE slug = ?', [$slug]);
+    return $r ? pwa_hydrate($r) : null;
 }
 
 function pwa_find_by_id($id)
 {
-    foreach (pwa_all() as $item) {
-        if (($item['id'] ?? '') === $id) {
-            return $item;
-        }
-    }
-    return null;
+    $r = db_row('SELECT * FROM pwa WHERE id = ?', [$id]);
+    return $r ? pwa_hydrate($r) : null;
 }
 
 function pwa_save(array $item)
 {
-    store_update('pwa', function ($data) use ($item) {
-        if (!isset($data['items']) || !is_array($data['items'])) {
-            $data['items'] = [];
-        }
-        $found = false;
-        foreach ($data['items'] as $i => $row) {
-            if (($row['id'] ?? '') === $item['id']) {
-                $data['items'][$i] = $item;
-                $found = true;
-                break;
-            }
-        }
-        if (!$found) {
-            $data['items'][] = $item;
-        }
-        return $data;
-    });
+    db_run(
+        'INSERT INTO pwa (id, slug, name, short_name, description, target_url, theme_color,
+            background_color, display, orientation, active, icon_svg, icon_ver, created_at, updated_at)
+         VALUES (:id, :slug, :name, :short_name, :description, :target_url, :theme_color,
+            :background_color, :display, :orientation, :active, :icon_svg, :icon_ver, :created_at, :updated_at)
+         ON DUPLICATE KEY UPDATE
+            slug = VALUES(slug), name = VALUES(name), short_name = VALUES(short_name),
+            description = VALUES(description), target_url = VALUES(target_url),
+            theme_color = VALUES(theme_color), background_color = VALUES(background_color),
+            display = VALUES(display), orientation = VALUES(orientation), active = VALUES(active),
+            icon_svg = VALUES(icon_svg), icon_ver = VALUES(icon_ver), updated_at = VALUES(updated_at)',
+        [
+            ':id' => $item['id'],
+            ':slug' => $item['slug'],
+            ':name' => $item['name'],
+            ':short_name' => $item['short_name'],
+            ':description' => $item['description'],
+            ':target_url' => $item['target_url'],
+            ':theme_color' => $item['theme_color'],
+            ':background_color' => $item['background_color'],
+            ':display' => $item['display'],
+            ':orientation' => $item['orientation'],
+            ':active' => !empty($item['active']) ? 1 : 0,
+            ':icon_svg' => !empty($item['icon_svg']) ? 1 : 0,
+            ':icon_ver' => (int) $item['icon_ver'],
+            ':created_at' => db_dt($item['created_at'] ?? null),
+            ':updated_at' => db_dt($item['updated_at'] ?? null),
+        ]
+    );
+    mem_clear('pwa.');
     return $item;
 }
 
 function pwa_delete($id)
 {
-    $removed = null;
-    store_update('pwa', function ($data) use ($id, &$removed) {
-        $items = isset($data['items']) ? $data['items'] : [];
-        $keep = [];
-        foreach ($items as $row) {
-            if (($row['id'] ?? '') === $id) {
-                $removed = $row;
-            } else {
-                $keep[] = $row;
-            }
-        }
-        $data['items'] = $keep;
-        return $data;
-    });
-    return $removed;
+    $item = pwa_find_by_id($id);
+    if (!$item) {
+        return null;
+    }
+    db_run('DELETE FROM pwa WHERE id = ?', [$id]);
+    mem_clear('pwa.');
+    return $item;
 }
 
 function pwa_slug_taken($slug, $exceptId = null)
 {
-    foreach (pwa_all() as $item) {
-        if (($item['slug'] ?? '') === $slug && ($item['id'] ?? '') !== $exceptId) {
-            return true;
-        }
-    }
-    return false;
+    $r = db_val('SELECT COUNT(*) FROM pwa WHERE slug = ? AND id <> ?', [$slug, (string) $exceptId]);
+    return (int) $r > 0;
 }
 
 /* ------------------------------------------------------------- Pengaturan */
 
 function settings_all()
 {
-    $s = store_read('settings', []);
-    if (empty($s['admin_user'])) {
-        $s = [
-            'admin_user' => DEFAULT_ADMIN_USER,
-            'admin_pass' => password_hash(DEFAULT_ADMIN_PASS, PASSWORD_DEFAULT),
-            'panel_title' => APP_NAME,
-            'created_at' => now_iso(),
-            'must_change_password' => true,
-        ];
-        store_write('settings', $s);
+    return mem_get('settings', function () {
+        $s = [];
+        foreach (db_all('SELECT k, v FROM settings') as $r) {
+            $s[$r['k']] = $r['v'];
+        }
+
+        if (empty($s['admin_user'])) {
+            $s = array_merge($s, [
+                'admin_user' => DEFAULT_ADMIN_USER,
+                'admin_pass' => password_hash(DEFAULT_ADMIN_PASS, PASSWORD_DEFAULT),
+                'panel_title' => APP_NAME,
+                'created_at' => now_iso(),
+                'must_change_password' => '1',
+            ]);
+            settings_write($s);
+        }
+
+        // Nilai boolean disimpan sebagai '1'/'0' di kolom TEXT
+        $s['must_change_password'] = !empty($s['must_change_password']) && $s['must_change_password'] !== '0';
+
+        return $s;
+    });
+}
+
+function settings_write(array $pairs)
+{
+    $st = db()->prepare('INSERT INTO settings (k, v) VALUES (?, ?) ON DUPLICATE KEY UPDATE v = VALUES(v)');
+    foreach ($pairs as $k => $v) {
+        if (is_bool($v)) {
+            $v = $v ? '1' : '0';
+        }
+        $st->execute([$k, (string) $v]);
     }
-    return $s;
 }
 
 function settings_save(array $patch)
 {
-    return store_update('settings', function ($s) use ($patch) {
-        return array_merge($s, $patch);
-    });
+    settings_write($patch);
+    mem_clear('settings');
+    return settings_all();
 }

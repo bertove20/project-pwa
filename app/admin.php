@@ -37,6 +37,8 @@ function admin_route(array $seg)
             return admin_stats_reset();
         case 'settings':
             return admin_settings();
+        case 'maintenance':
+            return admin_maintenance();
     }
     not_found();
 }
@@ -313,8 +315,6 @@ function admin_stats($slug)
         event_export_csv($slug, $from, $to, $filters);
     }
 
-    event_prune($slug);
-
     view('stats', [
         'pwa' => $pwa,
         'report' => event_report($slug, $from, $to, $filters),
@@ -324,8 +324,71 @@ function admin_stats($slug)
         'days' => $days,
         'isCustom' => $isCustom,
         'filters' => $filters,
-        'storage' => event_storage_size($slug),
+        'logRows' => event_count($slug),
     ]);
+}
+
+/* ------------------------------------------------- Pemeliharaan data */
+
+function admin_maintenance()
+{
+    $slug = query('slug');
+    if ($slug !== '' && !pwa_find($slug)) {
+        $slug = '';
+    }
+
+    if (is_post()) {
+        csrf_verify();
+        $slug = post('slug');
+        if ($slug !== '' && !pwa_find($slug)) {
+            $slug = '';
+        }
+
+        $dari = post('from_ym');
+        $sampai = post('to_ym');
+        if (!admin_valid_ym($dari) || !admin_valid_ym($sampai)) {
+            flash_set('error', 'Rentang bulan tidak valid.');
+            redirect(url('admin/maintenance'));
+        }
+        if ($dari > $sampai) {
+            [$dari, $sampai] = [$sampai, $dari];
+        }
+
+        // Ketik ulang rentangnya sebagai konfirmasi; penghapusan tidak bisa dibatalkan
+        if (post('confirm') !== $dari . ' ' . $sampai) {
+            flash_set('error', 'Konfirmasi tidak cocok. Ketik persis "' . $dari . ' ' . $sampai . '" untuk melanjutkan.');
+            redirect(url('admin/maintenance?slug=' . urlencode($slug)));
+        }
+
+        $hasil = event_delete_range($dari, $sampai, $slug, post('keep_daily') !== '1');
+        flash_set('success', sprintf(
+            '%s baris log%s dihapus untuk %s (%s s/d %s).%s',
+            number_format($hasil['events'], 0, ',', '.'),
+            $hasil['daily'] > 0 ? ' dan ' . number_format($hasil['daily'], 0, ',', '.') . ' baris agregat harian' : '',
+            $slug !== '' ? '"' . $slug . '"' : 'semua PWA',
+            $dari,
+            $sampai,
+            post('keep_daily') === '1' ? ' Ringkasan harian dipertahankan.' : ''
+        ));
+        redirect(url('admin/maintenance' . ($slug !== '' ? '?slug=' . urlencode($slug) : '')));
+    }
+
+    // Tanpa ini information_schema melaporkan ukuran lama yang jauh meleset
+    db_refresh_stats('events');
+    db_refresh_stats('stats_daily');
+
+    view('maintenance', [
+        'slug' => $slug,
+        'months' => event_months_available($slug),
+        'items' => pwa_all(),
+        'sizeEvents' => db_table_size('events'),
+        'sizeDaily' => db_table_size('stats_daily'),
+    ]);
+}
+
+function admin_valid_ym($v)
+{
+    return (bool) preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) $v);
 }
 
 function admin_valid_date($d)

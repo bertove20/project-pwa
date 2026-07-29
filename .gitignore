@@ -1,9 +1,10 @@
 # --- Data runtime (jangan pernah ikut ke repo) ---
-# settings.json berisi hash password admin, pwa.json berisi daftar PWA
-# beserta target link-nya. Keduanya milik tiap instalasi, bukan kode.
-data/*.json
-data/*.tmp
-data/events/
+# Isi folder data/ milik tiap instalasi, bukan kode: hash password admin,
+# daftar PWA beserta target link-nya, statistik, dan sisa berkas migrasi
+# (*.migrated) yang masih memuat semuanya.
+# Seluruh isi diabaikan, kecuali .htaccess yang memang bagian dari proteksi.
+data/*
+!data/.htaccess
 
 # Ikon hasil upload pengguna
 uploads/icons/*
