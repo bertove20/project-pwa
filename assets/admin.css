@@ -305,6 +305,7 @@ input[type="file"] { font-size: .88rem; color: var(--muted); }
 .bar-traffic { background: var(--primary); }
 .bar-install { background: var(--success); }
 .chart-x { font-size: .6rem; color: var(--muted); white-space: nowrap; }
+.chart-col.is-empty .chart-x { opacity: .45; }
 .chart-note { font-size: .8rem; margin: 12px 0 0; }
 
 /* --------------------------------------------------- Kode landing eksternal */
@@ -367,6 +368,74 @@ pre.code code { font: inherit; color: inherit; white-space: pre; }
 .steps-list li:last-child { margin-bottom: 0; }
 .steps-list code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
 
+/* ---------------------------------------------------------------- Analitik */
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.grid-2 .panel { margin-top: 0; }
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.filter-panel .range-tabs { margin-bottom: 14px; }
+.filter-form {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end;
+  padding-top: 14px; border-top: 1px solid var(--border);
+}
+.filter-field { display: flex; flex-direction: column; gap: 4px; }
+.filter-field > span { font-size: .76rem; font-weight: 600; color: var(--muted); }
+.filter-field input, .filter-field select { padding: 7px 10px; font-size: .86rem; min-width: 140px; }
+.filter-check {
+  display: flex; align-items: center; gap: 7px; font-size: .84rem;
+  color: var(--muted); cursor: pointer; padding-bottom: 8px;
+}
+.filter-check input { accent-color: var(--primary); }
+
+.rank-row {
+  display: grid; grid-template-columns: minmax(90px, 1.35fr) 2fr auto 46px;
+  gap: 10px; align-items: center; padding: 6px 0; font-size: .86rem;
+}
+.rank-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-bar { background: var(--surface-2); border-radius: 999px; height: 8px; overflow: hidden; }
+.rank-bar i { display: block; height: 100%; background: var(--primary); border-radius: 999px; }
+.rank-val { font-weight: 650; font-variant-numeric: tabular-nums; }
+.rank-pct { color: var(--muted); font-size: .8rem; text-align: right; font-variant-numeric: tabular-nums; }
+.empty-small { font-size: .86rem; margin: 4px 0; }
+
+.sw-click { background: #f59e0b; }
+.bar-click { background: #f59e0b; }
+/* Kolom terbalik: flex-start berarti menempel ke dasar grafik.
+   Tanpa ini batang mewarisi justify-content:center dan melayang di tengah. */
+.bars.stacked {
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0;
+}
+.bars.stacked .bar { width: 62%; max-width: 14px; border-radius: 0; min-height: 0; }
+.bars.stacked .bar:last-child { border-radius: 3px 3px 0 0; }
+.chart-hour { height: 150px; }
+
+.log-wrap { max-height: 560px; overflow-y: auto; }
+.log-table { min-width: 880px; }
+.log-table td { padding: 9px 14px; font-size: .84rem; }
+.log-table th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.nowrap { white-space: nowrap; }
+.mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-variant-numeric: tabular-nums; }
+.log-table .sub { display: block; font-size: .72rem; color: var(--muted); }
+.log-table .ref { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 6px;
+  font-size: .72rem; font-weight: 650; white-space: nowrap;
+}
+.tag-view { background: color-mix(in srgb, #94a3b8 20%, transparent); color: var(--muted); }
+.tag-install { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+.tag-open { background: color-mix(in srgb, var(--primary) 16%, transparent); color: var(--primary); }
+.tag-click { background: color-mix(in srgb, #f59e0b 20%, transparent); color: #b45309; }
+.tag-wv { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); margin-left: 4px; }
+
+@media (prefers-color-scheme: dark) {
+  .tag-click { color: #fbbf24; }
+}
+
 /* ------------------------------------------------------------------- Login */
 
 .login-body {
@@ -396,8 +465,22 @@ pre.code code { font: inherit; color: inherit; white-space: pre; }
 
 /* ----------------------------------------------------------------- Responsif */
 
+@media (max-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* Di layar sempit batang jadi terlalu tipis; rapatkan jarak dan lebarkan */
+@media (max-width: 620px) {
+  .chart { gap: 1px; padding: 8px 2px 0; }
+  .bar { width: 76%; }
+  .chart-x { font-size: .52rem; }
+  .rank-row { grid-template-columns: minmax(72px, 1.2fr) 1.6fr auto 42px; gap: 8px; font-size: .82rem; }
+}
+
 @media (max-width: 720px) {
   .row-2 { grid-template-columns: 1fr; }
+  .filter-field, .filter-field input, .filter-field select { min-width: 0; width: 100%; }
+  .filter-form { flex-direction: column; align-items: stretch; }
   .kv { grid-template-columns: 1fr; gap: 2px 0; }
   .kv dd { margin-bottom: 8px; }
   .topbar-inner { min-height: 56px; padding-top: 8px; padding-bottom: 8px; }

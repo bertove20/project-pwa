@@ -12,11 +12,19 @@
 
 define('STAT_EVENTS', ['view', 'install', 'open', 'click']);
 
-function stat_hit($slug, $event)
+/**
+ * @param string $src Asal trafik: pwa (ikon home screen), web (tombol landing),
+ *                    panel (landing bawaan), ext (landing di domain lain)
+ */
+function stat_hit($slug, $event, $src = '')
 {
     if (!in_array($event, STAT_EVENTS, true) || $slug === '') {
         return;
     }
+
+    // Lapisan detail: tanggal, jam, dan perangkat per kejadian
+    event_log($slug, $event, $src);
+
     $day = today();
     store_update('stats', function ($data) use ($slug, $event, $day) {
         if (!isset($data[$slug])) {
@@ -67,6 +75,7 @@ function stats_reset($slug)
         unset($data[$slug]);
         return $data;
     });
+    event_delete($slug);
 }
 
 /** Pindahkan riwayat statistik saat slug PWA diubah. */
@@ -82,6 +91,7 @@ function stats_rename($oldSlug, $newSlug)
         }
         return $data;
     });
+    event_rename($oldSlug, $newSlug);
 }
 
 /** Deret harian $days terakhir, selalu lengkap termasuk hari bernilai nol. */

@@ -14,6 +14,8 @@ require __DIR__ . '/lib/store.php';
 require __DIR__ . '/lib/auth.php';
 require __DIR__ . '/lib/icons.php';
 require __DIR__ . '/lib/stats.php';
+require __DIR__ . '/lib/useragent.php';
+require __DIR__ . '/lib/events.php';
 require __DIR__ . '/lib/embed.php';
 require __DIR__ . '/app/pwa.php';
 require __DIR__ . '/app/admin.php';

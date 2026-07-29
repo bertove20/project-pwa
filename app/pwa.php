@@ -69,7 +69,7 @@ function pwa_landing(array $pwa)
         exit;
     }
 
-    stat_hit($pwa['slug'], 'view');
+    stat_hit($pwa['slug'], 'view', 'panel');
     header('Cache-Control: no-cache, must-revalidate');
     view('landing', ['pwa' => $pwa]);
 }
@@ -192,7 +192,8 @@ function pwa_go(array $pwa)
     }
 
     // s=pwa dikirim oleh start_url manifest, artinya dibuka dari ikon home screen
-    stat_hit($pwa['slug'], query('s') === 'pwa' ? 'open' : 'click');
+    $fromIcon = query('s') === 'pwa';
+    stat_hit($pwa['slug'], $fromIcon ? 'open' : 'click', $fromIcon ? 'pwa' : 'web');
 
     header('Cache-Control: no-store, no-cache, must-revalidate');
     header('Referrer-Policy: no-referrer-when-downgrade');
@@ -218,7 +219,7 @@ function pwa_track(array $pwa)
 
     // Hanya install yang dilaporkan dari sisi klien; open/click sudah dicatat di /go.
     if ($event === 'install') {
-        stat_hit($pwa['slug'], $event);
+        stat_hit($pwa['slug'], $event, 'panel');
         json_out(['ok' => true]);
     }
     json_out(['ok' => false, 'error' => 'event tidak dikenal'], 400);
@@ -232,7 +233,7 @@ function pwa_track_pixel(array $pwa)
 {
     $event = query('event');
     if ($event === 'install' || $event === 'view') {
-        stat_hit($pwa['slug'], $event);
+        stat_hit($pwa['slug'], $event, 'ext');
     }
 
     header('Content-Type: image/gif');

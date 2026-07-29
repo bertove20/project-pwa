@@ -3,6 +3,7 @@
 # beserta target link-nya. Keduanya milik tiap instalasi, bukan kode.
 data/*.json
 data/*.tmp
+data/events/
 
 # Ikon hasil upload pengguna
 uploads/icons/*

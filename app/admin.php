@@ -285,15 +285,52 @@ function admin_stats($slug)
         flash_set('error', 'PWA tidak ditemukan.');
         redirect(url('admin'));
     }
+
+    // Rentang tanggal: preset lewat ?days, atau tanggal bebas lewat ?from & ?to
     $days = (int) query('days', 30);
-    $days = in_array($days, [7, 30, 90], true) ? $days : 30;
+    $days = in_array($days, [1, 7, 30, 90], true) ? $days : 30;
+
+    $from = query('from');
+    $to = query('to');
+    $isCustom = admin_valid_date($from) && admin_valid_date($to);
+
+    if (!$isCustom) {
+        $to = today();
+        $from = date('Y-m-d', strtotime('-' . ($days - 1) . ' days'));
+    }
+    if ($from > $to) {
+        [$from, $to] = [$to, $from];
+    }
+
+    $filters = [
+        'event' => in_array(query('event'), STAT_EVENTS, true) ? query('event') : '',
+        'device' => in_array(query('device'), ['mobile', 'tablet', 'desktop', 'bot'], true) ? query('device') : '',
+        'source' => in_array(query('source'), ['pwa', 'web', 'panel', 'ext'], true) ? query('source') : '',
+        'hide_bots' => query('bots') !== '1',
+    ];
+
+    if (query('export') === 'csv') {
+        event_export_csv($slug, $from, $to, $filters);
+    }
+
+    event_prune($slug);
 
     view('stats', [
         'pwa' => $pwa,
-        'series' => stats_series($slug, $days),
+        'report' => event_report($slug, $from, $to, $filters),
         'totals' => stats_for($slug)['totals'],
+        'from' => $from,
+        'to' => $to,
         'days' => $days,
+        'isCustom' => $isCustom,
+        'filters' => $filters,
+        'storage' => event_storage_size($slug),
     ]);
+}
+
+function admin_valid_date($d)
+{
+    return (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $d) && strtotime($d) !== false;
 }
 
 function admin_stats_reset()

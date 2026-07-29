@@ -120,14 +120,37 @@ data/              pwa.json, stats.json, settings.json  (ditolak dari web)
 uploads/icons/     Ikon hasil upload
 ```
 
-## Statistik
+## Statistik & analitik
 
-Empat event dicatat per PWA, diagregasi per hari (disimpan 120 hari terakhir):
+Empat peristiwa dicatat per PWA:
 
 - **view** &mdash; halaman promosi dibuka
 - **install** &mdash; browser melaporkan aplikasi berhasil dipasang
 - **open** &mdash; aplikasi dibuka dari ikon home screen
 - **click** &mdash; target dibuka dari tombol di halaman promosi
+
+Disimpan dalam dua lapis:
+
+| Lapis | Berkas | Isi | Masa simpan |
+|---|---|---|---|
+| Agregat harian | `data/stats.json` | Jumlah per peristiwa per hari, untuk kartu dashboard | 120 hari |
+| Rincian | `data/events/{slug}/{YYYY-MM}.jsonl` | Satu baris per kejadian | 12 bulan |
+
+Tiap baris rincian memuat tanggal dan jam persis, jenis peristiwa, sumber trafik
+(ikon home screen / landing panel / landing domain lain / tombol landing), jenis perangkat,
+sistem operasi, browser, penanda webview, perujuk, dan penanda pengunjung.
+
+Penanda pengunjung adalah hash ber-salt dari IP + User-Agent + tanggal. **Alamat IP tidak
+pernah disimpan**, dan penandanya berganti setiap hari sehingga hanya berguna untuk menghitung
+pengunjung unik harian.
+
+Halaman **Analitik** (`/admin/stats/{slug}`) menyajikan rentang tanggal bebas, filter per
+peristiwa / perangkat / sumber, grafik harian dan per jam, peringkat perangkat, OS, browser,
+dan perujuk, tabel peristiwa terbaru, serta ekspor CSV yang mengikuti filter aktif.
+
+Bot dan perayap dikenali dan disembunyikan secara bawaan. Trafik dari webview aplikasi
+(Facebook, Instagram, TikTok) ditandai khusus karena webview tidak pernah menampilkan tombol
+install PWA &mdash; berguna untuk menjelaskan angka install yang rendah dari sumber tersebut.
 
 ## Catatan penting
 
