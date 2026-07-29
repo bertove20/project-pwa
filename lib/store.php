@@ -56,6 +56,7 @@ function pwa_hydrate(array $r)
         'display' => $r['display'],
         'orientation' => $r['orientation'],
         'active' => (bool) $r['active'],
+        'protect' => (bool) $r['protect'],
         'icon_svg' => (bool) $r['icon_svg'],
         'icon_ver' => (int) $r['icon_ver'],
         'created_at' => $r['created_at'],
@@ -87,15 +88,16 @@ function pwa_save(array $item)
 {
     db_run(
         'INSERT INTO pwa (id, slug, name, short_name, description, target_url, web_target_url, theme_color,
-            background_color, display, orientation, active, icon_svg, icon_ver, created_at, updated_at)
+            background_color, display, orientation, active, protect, icon_svg, icon_ver, created_at, updated_at)
          VALUES (:id, :slug, :name, :short_name, :description, :target_url, :web_target_url, :theme_color,
-            :background_color, :display, :orientation, :active, :icon_svg, :icon_ver, :created_at, :updated_at)
+            :background_color, :display, :orientation, :active, :protect, :icon_svg, :icon_ver, :created_at, :updated_at)
          ON DUPLICATE KEY UPDATE
             slug = VALUES(slug), name = VALUES(name), short_name = VALUES(short_name),
             description = VALUES(description), target_url = VALUES(target_url),
             web_target_url = VALUES(web_target_url),
             theme_color = VALUES(theme_color), background_color = VALUES(background_color),
             display = VALUES(display), orientation = VALUES(orientation), active = VALUES(active),
+            protect = VALUES(protect),
             icon_svg = VALUES(icon_svg), icon_ver = VALUES(icon_ver), updated_at = VALUES(updated_at)',
         [
             ':id' => $item['id'],
@@ -110,6 +112,7 @@ function pwa_save(array $item)
             ':display' => $item['display'],
             ':orientation' => $item['orientation'],
             ':active' => !empty($item['active']) ? 1 : 0,
+            ':protect' => !empty($item['protect']) ? 1 : 0,
             ':icon_svg' => !empty($item['icon_svg']) ? 1 : 0,
             ':icon_ver' => (int) $item['icon_ver'],
             ':created_at' => db_dt($item['created_at'] ?? null),

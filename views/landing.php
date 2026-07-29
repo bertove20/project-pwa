@@ -7,6 +7,15 @@ $theme = $pwa['theme_color'] ?: '#0f172a';
 $bg = $pwa['background_color'] ?: '#ffffff';
 $name = $pwa['name'];
 $desc = $pwa['description'] !== '' ? $pwa['description'] : 'Pasang aplikasi ini di layar utama untuk akses sekali ketuk.';
+
+// Proteksi tampilan opsional (lib/guard.php): saat aktif, teks di bawah tidak
+// dikirim sebagai HTML biasa - dikosongkan di sini dan diisi oleh JavaScript
+// dari data tersandi, supaya view-source tidak menampilkan salinan siap-tempel.
+// Lihat lib/guard.php untuk apa yang TIDAK dilindungi mode ini.
+$protect = guard_active($pwa);
+$gt = function ($text) use ($protect) {
+    return $protect ? '' : e($text);
+};
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -89,18 +98,18 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
 <body>
 <main class="shell">
   <?php if ($ico): ?>
-    <img class="icon" src="<?= e($ico) ?>" alt="<?= e($name) ?>" width="108" height="108">
+    <img class="icon" src="<?= e($ico) ?>" alt="<?= $gt($name) ?>" width="108" height="108">
   <?php else: ?>
     <div class="icon icon-fb"><?= e(mb_strtoupper(mb_substr($name, 0, 1))) ?></div>
   <?php endif; ?>
 
-  <h1><?= e($name) ?></h1>
-  <p class="desc"><?= e($desc) ?></p>
+  <h1 id="app-name"><?= $gt($name) ?></h1>
+  <p class="desc" id="app-desc"><?= $gt($desc) ?></p>
 
-  <button type="button" class="btn btn-install hidden" id="btn-install">Pasang Aplikasi</button>
-  <a class="btn btn-open" id="btn-open" href="<?= e($scope . 'go') ?>">Buka Aplikasi</a>
+  <button type="button" class="btn btn-install hidden" id="btn-install"><?= $gt('Pasang Aplikasi') ?></button>
+  <a class="btn btn-open" id="btn-open" href="<?= e($scope . 'go') ?>"><?= $gt('Buka Aplikasi') ?></a>
 
-  <div class="installed hidden" id="msg-installed">Aplikasi terpasang. Membuka&hellip;</div>
+  <div class="installed hidden" id="msg-installed"><?= $gt("Aplikasi terpasang. Membuka\u{2026}") ?></div>
 
   <div class="steps hidden" id="steps-ios">
     <b>Cara pasang di iPhone / iPad</b>
@@ -220,5 +229,8 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
   }
 })();
 </script>
+<?php if ($protect): ?>
+<?= guard_script($pwa) ?>
+<?php endif; ?>
 </body>
 </html>

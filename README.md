@@ -91,6 +91,36 @@ Pemisahan ini menutup alamat tujuan dari pengunjung awam, mesin pencari, dan pra
 tautan &mdash; bukan dari orang yang memang sengaja menelusurinya. Untuk pembatasan
 sungguhan, alamat tujuan harus memeriksa sendiri siapa yang datang.
 
+## Proteksi tampilan halaman install (opsional)
+
+Aktifkan per PWA lewat centang **Proteksi Tampilan** di formulir. Dua bagian, aktif bersamaan:
+
+1. **Konten tersamar.** Nama, deskripsi, dan teks tombol tidak dikirim sebagai HTML biasa;
+   disandi (XOR + base64) dan diisi oleh JavaScript ke elemen kosong saat halaman dimuat.
+   `view-source` menampilkan blob tersandi, bukan salinan siap-tempel dari halaman promosinya.
+2. **Shield anti-DevTools.** Klik kanan dan pintasan F12/Ctrl+Shift+I/J/C/Ctrl+U dicegat.
+   Saat DevTools terdeteksi terbuka (lewat selisih ukuran jendela dan pemicu getter objek
+   yang dicetak konsol), seluruh halaman diganti tampilan mirip layar crash
+   &ldquo;Aw, Snap!&rdquo; milik Chrome.
+
+Implementasi di [lib/guard.php](lib/guard.php), diaktifkan lewat kolom `pwa.protect`.
+
+**Ini penyamaran, bukan keamanan sungguhan** &mdash; baca komentar di kepala berkas
+`lib/guard.php` sebelum mengaktifkan. Ringkasnya:
+
+- `manifest.webmanifest` dan `config.json` milik PWA yang sama **tetap** mengembalikan nama
+  dan deskripsi apa adanya dalam JSON biasa &mdash; keduanya dipakai fitur instalasi PWA dan
+  sinkronisasi landing eksternal, sengaja tidak ikut disandi. Proteksi ini hanya menutup
+  halaman promosinya sendiri, bukan seluruh data yang dipakai panel.
+- Deteksi DevTools bisa dilewati (devtools "terpisah" ke jendela sendiri, sebagian versi
+  Firefox, atau JavaScript yang dimatikan sepenuhnya).
+- Mencegat Ctrl+U/F12 hanya best-effort; browser berhak mengabaikan `preventDefault` untuk
+  pintasan miliknya sendiri.
+- Konten yang dibangun lewat JavaScript umumnya terindeks lebih sedikit oleh mesin pencari.
+
+Cocok untuk mempersulit peniru awam dan bot pengambil-konten sederhana. Bukan untuk data
+yang benar-benar harus dirahasiakan.
+
 ## Landing page di domain lain
 
 Manifest, service worker, dan `start_url` **wajib satu origin** dengan halaman yang memasang PWA.

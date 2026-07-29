@@ -91,6 +91,26 @@ ob_start();
   </div>
 
   <div class="panel">
+    <h2 class="panel-title">Proteksi Tampilan Halaman Install</h2>
+    <label class="check">
+      <input type="checkbox" name="protect" value="1" <?= $val('protect') ? 'checked' : '' ?>>
+      <span>Aktifkan proteksi &mdash; persulit peniru menyalin halaman ini.</span>
+    </label>
+    <small class="block" style="margin-top:10px">
+      Saat aktif: teks di halaman (nama, deskripsi, teks tombol) tidak dikirim sebagai HTML biasa,
+      klik kanan dan pintasan F12/Ctrl+Shift+I/Ctrl+U dicegat, dan bila DevTools terdeteksi terbuka
+      halaman diganti tampilan mirip layar &ldquo;Aw, Snap!&rdquo; milik Chrome.
+    </small>
+    <small class="block warn-text" style="margin-top:8px">
+      Ini penyamaran, bukan proteksi mutlak. <code>manifest.webmanifest</code> dan
+      <code>config.json</code> milik PWA ini tetap mengembalikan nama dan deskripsi apa adanya
+      (dipakai fitur instalasi &amp; sinkronisasi landing eksternal). Deteksi DevTools bisa dilewati,
+      dan halaman akan mengindeks lebih sedikit di mesin pencari. Cocok untuk mempersulit peniru
+      awam, bukan untuk data yang benar-benar rahasia.
+    </small>
+  </div>
+
+  <div class="panel">
     <h2 class="panel-title">Ikon</h2>
     <div class="icon-row">
       <div class="icon-preview" id="icon-preview">

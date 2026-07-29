@@ -75,7 +75,7 @@ function db_reset_state(PDO $pdo)
  * Versi skema. Naikkan bila struktur tabel berubah, agar pemeriksaan
  * dijalankan ulang sekali di setiap instalasi.
  */
-define('SCHEMA_VERSION', 3);
+define('SCHEMA_VERSION', 4);
 
 /**
  * Pemeriksaan skema hanya sekali seumur instalasi, ditandai berkas penanda.
@@ -160,6 +160,7 @@ function db_install(PDO $pdo)
             display VARCHAR(16) NOT NULL DEFAULT 'standalone',
             orientation VARCHAR(16) NOT NULL DEFAULT 'any',
             active TINYINT(1) NOT NULL DEFAULT 1,
+            protect TINYINT(1) NOT NULL DEFAULT 0,
             icon_svg TINYINT(1) NOT NULL DEFAULT 0,
             icon_ver INT UNSIGNED NOT NULL DEFAULT 0,
             created_at DATETIME NOT NULL,
@@ -229,6 +230,11 @@ function db_upgrade(PDO $pdo)
     // v3: target terpisah untuk tombol "Buka Aplikasi" di halaman install
     if (!db_column_exists($pdo, 'pwa', 'web_target_url')) {
         $pdo->exec('ALTER TABLE pwa ADD COLUMN web_target_url TEXT NULL AFTER target_url');
+    }
+
+    // v4: proteksi tampilan opsional pada landing bawaan panel (lib/guard.php)
+    if (!db_column_exists($pdo, 'pwa', 'protect')) {
+        $pdo->exec('ALTER TABLE pwa ADD COLUMN protect TINYINT(1) NOT NULL DEFAULT 0 AFTER active');
     }
 }
 

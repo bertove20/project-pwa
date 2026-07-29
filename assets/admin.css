@@ -478,6 +478,11 @@ pre.code code { font: inherit; color: inherit; white-space: pre; }
   color: var(--primary); margin-left: 6px; text-decoration: none; font-size: .68rem;
 }
 .tag-split:hover { background: color-mix(in srgb, var(--primary) 24%, transparent); }
+.tag-guard {
+  background: color-mix(in srgb, var(--warn) 16%, transparent);
+  color: var(--warn); margin-left: 6px; text-decoration: none; font-size: .68rem;
+}
+.tag-guard:hover { background: color-mix(in srgb, var(--warn) 26%, transparent); }
 
 @media (prefers-color-scheme: dark) {
   .tag-click { color: #fbbf24; }

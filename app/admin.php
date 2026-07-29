@@ -169,6 +169,7 @@ function admin_save()
         'display' => $display,
         'orientation' => $orientation,
         'active' => post('active') === '1',
+        'protect' => post('protect') === '1',
         'icon_svg' => $existing['icon_svg'] ?? false,
         'icon_ver' => $existing['icon_ver'] ?? 0,
         'created_at' => $existing['created_at'] ?? now_iso(),

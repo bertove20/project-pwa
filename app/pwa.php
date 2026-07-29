@@ -70,6 +70,7 @@ function pwa_landing(array $pwa)
     }
 
     lib('icons');
+    lib('guard');
     header('Cache-Control: no-cache, must-revalidate');
 
     // Halaman dikirim utuh lebih dulu, pencatatan menyusul

@@ -90,6 +90,10 @@ ob_start();
             <a class="tag tag-split" href="<?= e(url('admin/edit/' . $it['id'])) ?>"
                title="Tombol &ldquo;Buka Aplikasi&rdquo; diarahkan ke <?= e($it['web_target_url']) ?>">tombol dipisah</a>
           <?php endif; ?>
+          <?php if (!empty($it['protect'])): ?>
+            <a class="tag tag-guard" href="<?= e(url('admin/edit/' . $it['id'])) ?>"
+               title="Proteksi tampilan aktif: teks disamarkan, DevTools memicu layar Aw Snap">disamarkan</a>
+          <?php endif; ?>
         </span>
       </td>
 
