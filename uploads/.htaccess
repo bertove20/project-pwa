@@ -1,0 +1,18 @@
+Options -Indexes
+
+# Folder ini hanya untuk gambar - jangan pernah eksekusi skrip di sini
+<FilesMatch "\.(php|phtml|phar|phps|cgi|pl|py|sh|htaccess)$">
+    Require all denied
+</FilesMatch>
+
+<IfModule mod_php.c>
+    php_flag engine off
+</IfModule>
+
+# Landing page di domain lain memakai URL ikon yang penanda versinya bisa beku.
+# Revalidasi berkala memastikan ikon yang diganti di panel tetap ikut terbarui.
+<IfModule mod_headers.c>
+    <FilesMatch "\.(png|jpe?g|webp|svg)$">
+        Header set Cache-Control "max-age=600, must-revalidate"
+    </FilesMatch>
+</IfModule>

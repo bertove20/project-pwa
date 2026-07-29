@@ -1,0 +1,22 @@
+# --- Data runtime (jangan pernah ikut ke repo) ---
+# settings.json berisi hash password admin, pwa.json berisi daftar PWA
+# beserta target link-nya. Keduanya milik tiap instalasi, bukan kode.
+data/*.json
+data/*.tmp
+
+# Ikon hasil upload pengguna
+uploads/icons/*
+!uploads/icons/.gitkeep
+
+# Berkas kosong sisa editor; router memakai index.php
+index.html
+
+# --- Sistem & editor ---
+Thumbs.db
+Desktop.ini
+.DS_Store
+.idea/
+.vscode/
+*.log
+*.bak
+*~
