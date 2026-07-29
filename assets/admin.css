@@ -314,6 +314,19 @@ th.col-stat, th.col-status, th.col-act { text-align: center; }
 .icon-empty { color: var(--muted); font-size: .74rem; text-align: center; line-height: 1.4; }
 .icon-fields { flex: 1 1 260px; }
 
+.btn-preview { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; max-width: 320px; }
+.btn-preview-demo {
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px 16px; border-radius: 12px; font-weight: 650; font-size: .92rem;
+  pointer-events: none; user-select: none; word-break: break-word; text-align: center;
+}
+.btn-preview-install { background: #0f172a; color: #fff; }
+.btn-preview-open { background: transparent; color: #0f172a; border: 1.5px solid color-mix(in srgb, #0f172a 35%, transparent); }
+@media (prefers-color-scheme: dark) {
+  .btn-preview-install { background: #6366f1; }
+  .btn-preview-open { color: #e2e8f0; border-color: color-mix(in srgb, #e2e8f0 35%, transparent); }
+}
+
 .form-actions { display: flex; gap: 10px; flex-wrap: wrap; padding-top: 4px; }
 
 .kv { display: grid; grid-template-columns: 170px 1fr; gap: 8px 16px; margin: 0 0 14px; font-size: .89rem; }

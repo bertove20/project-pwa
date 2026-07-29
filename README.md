@@ -91,6 +91,17 @@ Pemisahan ini menutup alamat tujuan dari pengunjung awam, mesin pencari, dan pra
 tautan &mdash; bukan dari orang yang memang sengaja menelusurinya. Untuk pembatasan
 sungguhan, alamat tujuan harus memeriksa sendiri siapa yang datang.
 
+## Teks tombol yang bisa disesuaikan
+
+Panel **Teks Tombol** di formulir PWA memungkinkan mengganti label &ldquo;Pasang Aplikasi&rdquo;
+dan &ldquo;Buka Aplikasi&rdquo; sesuai kebutuhan (mis. &ldquo;Main Sekarang!&rdquo;), lengkap dengan
+pratinjau langsung saat mengetik. Dikosongkan berarti memakai teks bawaan.
+
+Berlaku konsisten di seluruh tempat tombol itu muncul: landing bawaan panel, proteksi tampilan
+(lib/guard.php), dan landing eksternal &mdash; baik mode PHP (ditarik live lewat `config.json`)
+maupun mode statis (dipatri saat diunduh, lalu ikut disegarkan oleh skrip sinkronisasi yang
+sudah ada).
+
 ## Proteksi tampilan halaman install (opsional)
 
 Aktifkan per PWA lewat centang **Proteksi Tampilan** di formulir. Dua bagian, aktif bersamaan:

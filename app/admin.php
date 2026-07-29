@@ -164,6 +164,8 @@ function admin_save()
         'description' => mb_substr(post('description'), 0, 300),
         'target_url' => $target,
         'web_target_url' => $webTarget,
+        'install_label' => mb_substr(trim(post('install_label')), 0, 40),
+        'open_label' => mb_substr(trim(post('open_label')), 0, 40),
         'theme_color' => $theme,
         'background_color' => $bg,
         'display' => $display,

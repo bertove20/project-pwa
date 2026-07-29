@@ -75,7 +75,7 @@ function db_reset_state(PDO $pdo)
  * Versi skema. Naikkan bila struktur tabel berubah, agar pemeriksaan
  * dijalankan ulang sekali di setiap instalasi.
  */
-define('SCHEMA_VERSION', 4);
+define('SCHEMA_VERSION', 5);
 
 /**
  * Pemeriksaan skema hanya sekali seumur instalasi, ditandai berkas penanda.
@@ -155,6 +155,8 @@ function db_install(PDO $pdo)
             description VARCHAR(300) NOT NULL DEFAULT '',
             target_url TEXT NOT NULL,
             web_target_url TEXT NULL,
+            install_label VARCHAR(40) NOT NULL DEFAULT '',
+            open_label VARCHAR(40) NOT NULL DEFAULT '',
             theme_color CHAR(7) NOT NULL DEFAULT '#0f172a',
             background_color CHAR(7) NOT NULL DEFAULT '#ffffff',
             display VARCHAR(16) NOT NULL DEFAULT 'standalone',
@@ -235,6 +237,14 @@ function db_upgrade(PDO $pdo)
     // v4: proteksi tampilan opsional pada landing bawaan panel (lib/guard.php)
     if (!db_column_exists($pdo, 'pwa', 'protect')) {
         $pdo->exec('ALTER TABLE pwa ADD COLUMN protect TINYINT(1) NOT NULL DEFAULT 0 AFTER active');
+    }
+
+    // v5: teks tombol "Pasang Aplikasi" / "Buka Aplikasi" bisa disesuaikan per PWA
+    if (!db_column_exists($pdo, 'pwa', 'install_label')) {
+        $pdo->exec("ALTER TABLE pwa ADD COLUMN install_label VARCHAR(40) NOT NULL DEFAULT '' AFTER web_target_url");
+    }
+    if (!db_column_exists($pdo, 'pwa', 'open_label')) {
+        $pdo->exec("ALTER TABLE pwa ADD COLUMN open_label VARCHAR(40) NOT NULL DEFAULT '' AFTER install_label");
     }
 }
 

@@ -51,6 +51,8 @@ function pwa_hydrate(array $r)
         'description' => $r['description'],
         'target_url' => $r['target_url'],
         'web_target_url' => (string) ($r['web_target_url'] ?? ''),
+        'install_label' => (string) ($r['install_label'] ?? ''),
+        'open_label' => (string) ($r['open_label'] ?? ''),
         'theme_color' => $r['theme_color'],
         'background_color' => $r['background_color'],
         'display' => $r['display'],
@@ -87,14 +89,17 @@ function pwa_find_by_id($id)
 function pwa_save(array $item)
 {
     db_run(
-        'INSERT INTO pwa (id, slug, name, short_name, description, target_url, web_target_url, theme_color,
+        'INSERT INTO pwa (id, slug, name, short_name, description, target_url, web_target_url,
+            install_label, open_label, theme_color,
             background_color, display, orientation, active, protect, icon_svg, icon_ver, created_at, updated_at)
-         VALUES (:id, :slug, :name, :short_name, :description, :target_url, :web_target_url, :theme_color,
+         VALUES (:id, :slug, :name, :short_name, :description, :target_url, :web_target_url,
+            :install_label, :open_label, :theme_color,
             :background_color, :display, :orientation, :active, :protect, :icon_svg, :icon_ver, :created_at, :updated_at)
          ON DUPLICATE KEY UPDATE
             slug = VALUES(slug), name = VALUES(name), short_name = VALUES(short_name),
             description = VALUES(description), target_url = VALUES(target_url),
             web_target_url = VALUES(web_target_url),
+            install_label = VALUES(install_label), open_label = VALUES(open_label),
             theme_color = VALUES(theme_color), background_color = VALUES(background_color),
             display = VALUES(display), orientation = VALUES(orientation), active = VALUES(active),
             protect = VALUES(protect),
@@ -107,6 +112,8 @@ function pwa_save(array $item)
             ':description' => $item['description'],
             ':target_url' => $item['target_url'],
             ':web_target_url' => $item['web_target_url'] !== '' ? $item['web_target_url'] : null,
+            ':install_label' => $item['install_label'] ?? '',
+            ':open_label' => $item['open_label'] ?? '',
             ':theme_color' => $item['theme_color'],
             ':background_color' => $item['background_color'],
             ':display' => $item['display'],

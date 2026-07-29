@@ -176,6 +176,22 @@
     });
   });
 
+  /* ---------------------------------------------- Pratinjau teks tombol */
+
+  (function () {
+    var pairs = [
+      [document.getElementById('f-install-label'), document.getElementById('preview-install'), 'Pasang Aplikasi'],
+      [document.getElementById('f-open-label'), document.getElementById('preview-open'), 'Buka Aplikasi'],
+    ];
+    pairs.forEach(function (p) {
+      var input = p[0], preview = p[1], fallback = p[2];
+      if (!input || !preview) return;
+      var render = function () { preview.textContent = input.value.trim() !== '' ? input.value : fallback; };
+      input.addEventListener('input', render);
+      render();
+    });
+  })();
+
   /* ------------------------------------------------- Form: slug & pratinjau */
 
   var nameInput = document.getElementById('f-name');

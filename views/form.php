@@ -64,6 +64,28 @@ ob_start();
     </label>
   </div>
 
+  <div class="panel">
+    <h2 class="panel-title">Teks Tombol</h2>
+    <div class="row-2">
+      <label class="field">
+        <span>Teks tombol &ldquo;Pasang Aplikasi&rdquo;</span>
+        <input type="text" name="install_label" id="f-install-label" value="<?= e($val('install_label')) ?>"
+               maxlength="40" placeholder="Pasang Aplikasi">
+        <small>Tampil saat browser menawarkan instalasi. Kosongkan untuk teks bawaan.</small>
+      </label>
+      <label class="field">
+        <span>Teks tombol &ldquo;Buka Aplikasi&rdquo;</span>
+        <input type="text" name="open_label" id="f-open-label" value="<?= e($val('open_label')) ?>"
+               maxlength="40" placeholder="Buka Aplikasi">
+        <small>Tombol yang mengarah ke target link (atur di panel Target Link).</small>
+      </label>
+    </div>
+    <div class="btn-preview">
+      <span class="btn-preview-demo btn-preview-install" id="preview-install">Pasang Aplikasi</span>
+      <span class="btn-preview-demo btn-preview-open" id="preview-open">Buka Aplikasi</span>
+    </div>
+  </div>
+
   <div class="panel panel-accent">
     <h2 class="panel-title">Target Link</h2>
     <label class="field">

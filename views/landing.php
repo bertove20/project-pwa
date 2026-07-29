@@ -7,6 +7,8 @@ $theme = $pwa['theme_color'] ?: '#0f172a';
 $bg = $pwa['background_color'] ?: '#ffffff';
 $name = $pwa['name'];
 $desc = $pwa['description'] !== '' ? $pwa['description'] : 'Pasang aplikasi ini di layar utama untuk akses sekali ketuk.';
+$installLabel = $pwa['install_label'] !== '' ? $pwa['install_label'] : 'Pasang Aplikasi';
+$openLabel = $pwa['open_label'] !== '' ? $pwa['open_label'] : 'Buka Aplikasi';
 
 // Proteksi tampilan opsional (lib/guard.php): saat aktif, teks di bawah tidak
 // dikirim sebagai HTML biasa - dikosongkan di sini dan diisi oleh JavaScript
@@ -106,8 +108,8 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
   <h1 id="app-name"><?= $gt($name) ?></h1>
   <p class="desc" id="app-desc"><?= $gt($desc) ?></p>
 
-  <button type="button" class="btn btn-install hidden" id="btn-install"><?= $gt('Pasang Aplikasi') ?></button>
-  <a class="btn btn-open" id="btn-open" href="<?= e($scope . 'go') ?>"><?= $gt('Buka Aplikasi') ?></a>
+  <button type="button" class="btn btn-install hidden" id="btn-install"><?= $gt($installLabel) ?></button>
+  <a class="btn btn-open" id="btn-open" href="<?= e($scope . 'go') ?>"><?= $gt($openLabel) ?></a>
 
   <div class="installed hidden" id="msg-installed"><?= $gt("Aplikasi terpasang. Membuka\u{2026}") ?></div>
 

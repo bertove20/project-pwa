@@ -90,6 +90,8 @@ function embed_fallback_array(array $pwa)
         'orientation' => $pwa['orientation'] ?? 'any',
         'theme_color' => $pwa['theme_color'] ?? '#0f172a',
         'background_color' => $pwa['background_color'] ?? '#ffffff',
+        'install_label' => $pwa['install_label'] ?? '',
+        'open_label' => $pwa['open_label'] ?? '',
         'active' => true,
         'icons' => icon_manifest_entries($pwa),
         'icon' => icon_abs_url($pwa, 512),
@@ -452,8 +454,8 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
 <?php if (!$aktif): ?>
   <div class="installed">Aplikasi sedang dalam pemeliharaan. Silakan coba beberapa saat lagi.</div>
 <?php else: ?>
-  <button type="button" class="btn btn-install hidden" id="btn-install">Pasang Aplikasi</button>
-  <a class="btn btn-open" id="btn-open" href="<?= htmlspecialchars(PANEL_GO_URL, ENT_QUOTES) ?>?s=web">Buka Aplikasi</a>
+  <button type="button" class="btn btn-install hidden" id="btn-install"><?= pe('install_label', 'Pasang Aplikasi') ?></button>
+  <a class="btn btn-open" id="btn-open" href="<?= htmlspecialchars(PANEL_GO_URL, ENT_QUOTES) ?>?s=web"><?= pe('open_label', 'Buka Aplikasi') ?></a>
 
   <div class="installed hidden" id="msg-installed">Aplikasi terpasang. Membuka&hellip;</div>
 
@@ -687,6 +689,8 @@ function embed_index_static(array $pwa)
     $theme = e($pwa['theme_color']);
     $bg = e($pwa['background_color']);
     $initial = e(mb_strtoupper(mb_substr($pwa['name'], 0, 1)));
+    $installLabel = e($pwa['install_label'] !== '' ? $pwa['install_label'] : 'Pasang Aplikasi');
+    $openLabel = e($pwa['open_label'] !== '' ? $pwa['open_label'] : 'Buka Aplikasi');
 
     $iconAbs = icon_abs_url($pwa, 512);
 
@@ -752,8 +756,8 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
   <h1 id="app-name">{$name}</h1>
   <p class="desc" id="app-desc">{$desc}</p>
 
-  <button type="button" class="btn btn-install hidden" id="btn-install">Pasang Aplikasi</button>
-  <a class="btn btn-open" id="btn-open" href="{$openUrl}">Buka Aplikasi</a>
+  <button type="button" class="btn btn-install hidden" id="btn-install">{$installLabel}</button>
+  <a class="btn btn-open" id="btn-open" href="{$openUrl}">{$openLabel}</a>
 
   <div class="installed hidden" id="msg-installed">Aplikasi terpasang. Membuka&hellip;</div>
 
@@ -858,6 +862,9 @@ p.desc{margin:0 0 28px;color:#475569;line-height:1.6;font-size:.98rem}
           OPEN_URL = c.go_url + '?s=web';
           if (btnOpen) btnOpen.setAttribute('href', OPEN_URL);
         }
+
+        if (c.install_label) btnInstall.textContent = c.install_label;
+        if (c.open_label) btnOpen.textContent = c.open_label;
       })
       .catch(function () { /* panel tidak terjangkau - pakai nilai bawaan halaman */ });
   }

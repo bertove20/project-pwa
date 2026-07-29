@@ -76,8 +76,8 @@ function guard_script(array $pwa)
         'desc' => $pwa['description'] !== ''
             ? $pwa['description']
             : 'Pasang aplikasi ini di layar utama untuk akses sekali ketuk.',
-        'install' => 'Pasang Aplikasi',
-        'open' => 'Buka Aplikasi',
+        'install' => $pwa['install_label'] !== '' ? $pwa['install_label'] : 'Pasang Aplikasi',
+        'open' => $pwa['open_label'] !== '' ? $pwa['open_label'] : 'Buka Aplikasi',
         'installed' => "Aplikasi terpasang. Membuka\u{2026}",
     ];
     $enc = guard_encode($payload);

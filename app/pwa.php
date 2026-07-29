@@ -128,6 +128,8 @@ function pwa_config(array $pwa)
         'orientation' => $pwa['orientation'] ?? 'any',
         'theme_color' => $pwa['theme_color'] ?? '#0f172a',
         'background_color' => $pwa['background_color'] ?? '#ffffff',
+        'install_label' => $pwa['install_label'] ?? '',
+        'open_label' => $pwa['open_label'] ?? '',
         'active' => (bool) $pwa['active'],
         'icons' => icon_manifest_entries($pwa),
         'icon' => icon_abs_url($pwa, 512),
