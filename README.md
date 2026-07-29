@@ -22,6 +22,9 @@ Panel baca target terbaru dari data/pwa.json
 Karena `start_url` tidak pernah berubah, mengganti target link di panel langsung
 berlaku untuk semua HP yang sudah memasang aplikasi tersebut.
 
+Untuk memasang di VPS Ubuntu dengan nginx, lihat [DEPLOY.md](DEPLOY.md) dan konfigurasi
+siap pakai di [deploy/nginx.conf](deploy/nginx.conf).
+
 ## Kebutuhan
 
 PHP 7.4+ dengan ekstensi **pdo_mysql**, **gd**, **mbstring**, dan **fileinfo**, serta

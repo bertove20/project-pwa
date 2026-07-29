@@ -13,6 +13,10 @@ uploads/icons/*
 # Berkas kosong sisa editor; router memakai index.php
 index.html
 
+# Sisa berkas pengujian (cookie jar curl, dsb)
+*.cookies
+cookies*.txt
+
 # --- Sistem & editor ---
 Thumbs.db
 Desktop.ini
