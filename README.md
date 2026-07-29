@@ -218,9 +218,22 @@ Yang membuatnya ringan:
 - **Sesi tidak dijalankan** untuk endpoint publik, jadi tidak ada I/O berkas sesi
   maupun cookie yang dikirim ke pengunjung.
 
-Throughput endpoint yang menulis dibatasi fsync InnoDB, bukan oleh kode. Bila
-perlu lebih tinggi dan kehilangan maksimal satu detik data saat server mati
-mendadak masih bisa diterima, setel `innodb_flush_log_at_trx_commit = 2` di MySQL.
+Throughput endpoint yang menulis dibatasi database, bukan oleh kode PHP. Dua
+dugaan diuji, dan hasilnya tidak seperti perkiraan awal:
+
+| Dugaan | Hasil pengukuran |
+|---|---|
+| fsync per commit (`innodb_flush_log_at_trx_commit`) | **Bukan penyebabnya.** Diubah ke `2`: 1,62 ms → 1,56 ms, praktis tidak berubah |
+| Antre kunci pada satu baris `stats_daily` | **Ini penyebabnya.** 8 pekerja menumbuk baris sama 677 tulis/detik, baris berbeda 1.776 tulis/detik |
+
+Setiap kunjungan pada PWA yang sama di hari yang sama memperbarui satu baris
+`stats_daily` yang identik, sehingga saling menunggu. Kontensinya per-PWA:
+sepuluh PWA berbeda menulis ke sepuluh baris berbeda tanpa saling mengganggu.
+
+Batas 677 tulis/detik untuk satu PWA setara 58 juta kunjungan sehari, jadi ini
+bukan masalah yang perlu ditangani sekarang. Bila suatu saat tercapai,
+penyelesaiannya memecah penghitung menjadi beberapa baris (`bucket` acak per
+kunjungan, dijumlahkan saat dibaca) &mdash; bukan menambah infrastruktur baru.
 
 **OPcache belum aktif** di lingkungan ini. Tanpa OPcache, PHP mem-parse ulang
 seluruh berkas pada setiap permintaan (0,82 ms untuk jalur publik). Mengaktifkannya
@@ -233,6 +246,37 @@ opcache.enable=1
 opcache.memory_consumption=128
 opcache.validate_timestamps=1
 ```
+
+### Apakah perlu Redis?
+
+Belum, dan kemungkinan besar masih lama. Biaya tiap bagian satu permintaan
+`/go` sudah diukur:
+
+| Bagian | Biaya | Bisa digantikan Redis? |
+|---|---|---|
+| `SELECT` data PWA | 0,049 ms | ya, tapi Redis lebih lambat |
+| `SELECT` salt pengunjung | 0,040 ms | ya, tapi Redis lebih lambat |
+| Dua penulisan statistik | 2,142 ms | tidak, kecuali ditulis asinkron |
+| Parsing berkas PHP | 0,855 ms | tidak &mdash; ini tugas OPcache |
+
+Yang bisa diambil alih Redis totalnya **0,089 ms**, sementara satu panggilan
+Redis lewat TCP saja sekitar 0,1&ndash;0,2 ms. Dengan koneksi persisten dan baris
+yang sudah berada di buffer pool, MySQL di sini lebih cepat daripada perjalanan
+ke Redis. Menambahkannya justru memperlambat sekaligus menambah satu layanan
+yang harus dijaga.
+
+Bandingkan: OPcache menghilangkan 0,855 ms &mdash; sepuluh kali lipat dari yang
+mampu dihemat Redis, tanpa infrastruktur tambahan.
+
+Redis baru masuk akal bila salah satu berikut terjadi:
+
+- **Lebih dari satu server web.** Redis dipakai untuk keadaan bersama (sesi,
+  pembatasan laju, cache lintas server) &mdash; soal kebenaran, bukan kecepatan.
+- **Penulisan melampaui kemampuan MySQL** setelah penghitung dipecah. Pola yang
+  dipakai: kunjungan ditumpuk di Redis, lalu dipindahkan ke MySQL secara berkala
+  oleh proses latar. Konsekuensinya data bisa hilang bila Redis mati sebelum
+  dipindahkan, dan perlu proses pemindah yang ikut dijaga.
+- **Statistik dibaca sangat sering** oleh sistem lain lewat API.
 
 ### Kinerja landing page eksternal
 
